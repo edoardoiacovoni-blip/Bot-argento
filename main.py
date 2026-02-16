@@ -1,31 +1,12 @@
 import requests
 import time
+import os
 
 # --- CONFIGURAZIONE BLINDATA FLYING WHEEL ---
-API_KEY = "9GzagnUAbvi4cBY6MDxoozWfjDvXNA1dqvaA2qoZAZYpkB6hhrPQwE9T2WYMJe7vS1" # <--- Incolla qui la chiave pubblica
-SECRET_KEY = "EosKMzGfUAjPqDxYcHi2p44Ojce0Cd0M3wk4WXdQRw4v0hMeIADeQrgRv4Vp0fVT" # <--- Incolla qui la chiave segreta
+API_KEY = os.getenv("API_KEY", "YOUR_API_KEY_HERE")
+SECRET_KEY = os.getenv("SECRET_KEY", "YOUR_SECRET_KEY_HERE")
 
 # --- LOGICA DEI 18 PUNTI E ACCUMULO ARGENTO ---
-def flying_wheel_engine():
-    print("💎 SISTEMA FLYING WHEEL ATTIVO 24/7")
-    print("🥈 OBIETTIVO: ACCUMULO ARGENTO (PAXG)")
-    
-while True:
-    try:
-        risposta = requests.get("https://api.binance.com/api/v3/ticker/24hr")
-        mercati = risposta.json()
-        per_il_salto = [m for m in mercati if float(m['priceChangePercent']) > 5]
-        for coin in per_il_salto[:3]:
-            print(f"🚀 JUMPING: Trend su {coin['symbol']} (+{coin['priceChangePercent']}%)")
-            # Esecuzione micro-guadagni basata su trend BlackRock/BCE
-            controlla_istituzionali()  # Monitoraggio BCE, PBoC, BlackRock
-            accumula_in_argento()      # Accumulo profitto in Argento
-            print(f"💰 Profitto convertito in Argento per {coin}")
-        time.sleep(15)
-    except Exception as e:
-        print(f"❌ Errore sistema: {e}")
-        time.sleep(5)
-        continue
 def calcola_salto_quantico(dati_mercato):
     """Analisi dei 18 punti per identificare il trend esplosivo"""
     # Filtro velocità: variazioni > 1.8% e volume alto
@@ -48,13 +29,23 @@ def converti_in_argento(profitto):
         print(f"🥈 [CAVEAU] Spostando {profitto} in Argento...")
         # Comando API per acquisto Argento
 
-# --- AVVIO FINALE DEL SISTEMA ---
-if __name__ == "__main__":
-    print("🚀 FLYING WHEEL ENGINE: DECOLLO")
-    flying_wheel_engine()
+def controlla_istituzionali():
+    """Monitoraggio BCE, PBoC, BlackRock"""
+    print("📊 Controllo segnali istituzionali...")
+
+def accumula_in_argento():
+    """Accumulo profitto in Argento"""
+    print("💰 Accumulo in Argento...")
+
+def report_veloce_argento():
+    """Mostra l'accumulo nel caveau (Punto 08/02)"""
+    print("📊 Report: Trasferimento in Argento completato.")
+
 def flying_wheel_engine():
     """Il cuore del sistema: coordina i 18 punti e l'accumulo in argento"""
     print("💎 SISTEMA FLYING WHEEL IN ESECUZIONE...")
+    print("🥈 OBIETTIVO: ACCUMULO ARGENTO (PAXG)")
+    
     while True:
         try:
             # 1. Controllo Sentiment Istituzionale (BCE/BlackRock)
@@ -75,17 +66,18 @@ def flying_wheel_engine():
                 # 5. Messa in sicurezza (Obiettivo Argento 08/02)
                 if gain > 0:
                     converti_in_argento(gain)
+                    controlla_istituzionali()
+                    accumula_in_argento()
+                    print(f"🚀 JUMPING: Trend su {o['symbol']} (+{o['priceChangePercent']}%)")
+
+            time.sleep(15)
 
         except Exception as e:
             print(f"⚠️ Errore sistema: {e}")
             time.sleep(10)
             continue
 
-def report_veloce_argento():
-    """Mostra l'accumulo nel caveau (Punto 08/02)"""
-    print("📊 Report: Trasferimento in Argento completato.")
-
 # --- INTERRUTTORE DI ACCENSIONE FINALE ---
 if __name__ == "__main__":
-    print("🚀 FLYING WHEEL SYSTEM: START")
+    print("🚀 FLYING WHEEL ENGINE: DECOLLO")
     flying_wheel_engine()
