@@ -1,31 +1,54 @@
 import requests
 import time
 import os
+from pionex import Pionex
 
-# Configuration
-API_KEY = os.getenv("API_KEY", "YOUR_API_KEY_HERE")
-SECRET_KEY = os.getenv("SECRET_KEY", "YOUR_SECRET_KEY_HERE")
+# Configuration from Render environment
+API_KEY = os.getenv("API_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY")
+
+# Initialize Pionex client
+client = Pionex(api_key=API_KEY, api_secret=SECRET_KEY)
 
 def calculate_quantum_jump(market_data):
-    """Analysis of 18 points to identify explosive trend"""
+    """18 points analysis for trend identification"""
     choices = [m for m in market_data if float(m['priceChangePercent']) > 1.8]
     return choices[:5]
 
 def check_institutional_signals():
-    """Monitoring institutional signals"""
+    """Monitor institutional signals"""
     return True 
 
 def execute_micro_trade(symbol, trade_type="BUY"):
-    """Instant execution micro-operation"""
-    return 0.25
+    """Execute micro-operation via Pionex"""
+    try:
+        order = client.create_order(
+            symbol=symbol,
+            side=trade_type,
+            type='MARKET',
+            quantity=0.01
+        )
+        return 0.25
+    except Exception as e:
+        print(f"Trade error: {e}")
+        return 0
 
 def convert_to_silver(profit):
-    """Accumulation in Silver (PAXG)"""
+    """Accumulate in Silver (PAXG) via Pionex"""
     if profit > 0:
-        print(f"Moving {profit} to Silver...")
+        print(f"Moving {profit} to Silver (PAXG)...")
+        try:
+            client.create_order(
+                symbol='PAXGUSD',
+                side='BUY',
+                type='MARKET',
+                quantity=profit
+            )
+        except Exception as e:
+            print(f"Silver accumulation error: {e}")
 
 def check_institutional():
-    """Monitoring institutional signals"""
+    """Check institutional signals"""
     print("Checking institutional signals...")
 
 def accumulate_in_silver():
@@ -33,9 +56,10 @@ def accumulate_in_silver():
     print("Accumulating in Silver...")
 
 def flying_wheel_engine():
-    """The heart of the system"""
+    """Flying Wheel System - coordinated 18 points and silver accumulation"""
     print("FLYING WHEEL SYSTEM IN EXECUTION...")
-    print("TARGET: SILVER ACCUMULATION")
+    print("TARGET: SILVER ACCUMULATION (PAXG)")
+    print("Platform: Pionex + Render + GitHub")
     
     while True:
         try:
@@ -43,7 +67,7 @@ def flying_wheel_engine():
                 time.sleep(30)
                 continue
 
-            response = requests.get("https://api.binance.com/api/v3/ticker/24hr").json()
+            response = client.get_ticker()
             opportunities = calculate_quantum_jump(response)
 
             for opportunity in opportunities:
@@ -64,4 +88,5 @@ def flying_wheel_engine():
 
 if __name__ == "__main__":
     print("FLYING WHEEL ENGINE: TAKEOFF")
+    print("Connected to: Pionex | Render | GitHub")
     flying_wheel_engine()
