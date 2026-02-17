@@ -22,7 +22,12 @@ class PionexClient:
         self.base_url = PIONEX_API_BASE
         
     def _generate_signature(self, params):
-        """Generate HMAC SHA256 signature for Pionex API"""
+        """Generate HMAC SHA256 signature for Pionex API
+        
+        Note: This implementation follows standard API signature patterns.
+        The actual Pionex API signature requirements may vary.
+        Adjust based on Pionex's official API documentation.
+        """
         query_string = urlencode(sorted(params.items()))
         signature = hmac.new(
             self.secret_key.encode('utf-8'),
@@ -67,12 +72,12 @@ class PionexClient:
         """Get market ticker data"""
         return self._make_request('GET', '/api/v1/market/tickers')
     
-    def create_order(self, symbol, side, type, quantity):
+    def create_order(self, symbol, side, order_type, quantity):
         """Create a new order"""
         params = {
             'symbol': symbol,
             'side': side,
-            'type': type,
+            'type': order_type,
             'quantity': quantity
         }
         return self._make_request('POST', '/api/v1/trade/order', params)
@@ -88,7 +93,7 @@ class PionexClient:
 
 
 # Initialize Pionex client
-client = PionexClient(api_key=API_KEY, secret_key=SECRET_KEY) if API_KEY and SECRET_KEY else None
+client = PionexClient(api_key=API_KEY, secret_key=SECRET_KEY) if (API_KEY and SECRET_KEY and API_KEY.strip() and SECRET_KEY.strip()) else None
 
 def calculate_quantum_jump(market_data):
     """18 points analysis for trend identification"""
