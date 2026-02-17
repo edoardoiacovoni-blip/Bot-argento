@@ -2,6 +2,8 @@
 
 Bot di trading automatico per accumulare argento (PAXG) tramite Pionex.
 
+> 🚀 **Guida Rapida**: Se vuoi collegare questo repository a Render, leggi la [GUIDA_RENDER.md](./GUIDA_RENDER.md) per istruzioni dettagliate passo-passo!
+
 ## 🚀 Funzionalità
 
 - Connessione API Pionex per trading automatico
@@ -48,32 +50,82 @@ python main.py
 
 ## ☁️ Deploy su Render
 
-### 1. Crea un nuovo Web Service su Render
+### ❓ Il Repository sarà già su Render?
+
+**NO** - Il repository GitHub NON sarà automaticamente su Render. Devi collegarlo tu manualmente seguendo questi passaggi:
+
+### 📝 Procedura Completa di Collegamento
+
+#### 1. Prerequisiti
+
+Prima di iniziare, assicurati di avere:
+- ✅ Un account su [Render](https://render.com) (gratuito)
+- ✅ Un account GitHub con accesso a questo repository
+- ✅ Le credenziali API di Pionex pronte
+
+#### 2. Collega GitHub a Render
 
 1. Vai su [Render Dashboard](https://dashboard.render.com/)
-2. Clicca su "New +" → "Web Service"
-3. Connetti il tuo repository GitHub
-4. Seleziona questo repository
+2. Se è la prima volta, Render ti chiederà di autorizzare l'accesso a GitHub
+3. Clicca su "Connect GitHub" o "Authorize GitHub"
+4. Autorizza Render ad accedere ai tuoi repository GitHub
 
-### 2. Configura il servizio
+#### 3. Crea il Web Service
 
-- **Name**: `bot-argento`
+1. Nel Dashboard di Render, clicca su **"New +"** (in alto a destra)
+2. Seleziona **"Web Service"**
+3. Render mostrerà la lista dei tuoi repository GitHub
+4. Cerca **"Bot-argento"** nella lista
+5. Clicca su **"Connect"** accanto al repository
+
+#### 4. Configura il Servizio
+
+Render rileverà automaticamente il file `render.yaml` e compilerà i campi, ma verifica:
+
+- **Name**: `bot-argento` (puoi cambiarlo se vuoi)
 - **Environment**: `Python 3`
 - **Build Command**: `pip install -r requirements.txt`
 - **Start Command**: `python main.py`
+- **Plan**: Seleziona "Free" (o un piano a pagamento se preferisci)
 
-### 3. Aggiungi le Environment Variables
+#### 5. Aggiungi le Environment Variables
 
-Nel pannello "Environment" di Render, aggiungi:
+**IMPORTANTE**: Prima di fare il deploy, devi aggiungere le variabili d'ambiente:
 
-```
-PIONEX_API_KEY = <your_pionex_api_key>
-PIONEX_SECRET_KEY = <your_pionex_secret_key>
-```
+1. Scorri fino alla sezione **"Environment Variables"**
+2. Clicca su **"Add Environment Variable"**
+3. Aggiungi:
+   ```
+   Key: PIONEX_API_KEY
+   Value: <la_tua_api_key_pionex>
+   ```
+4. Clicca di nuovo su **"Add Environment Variable"**
+5. Aggiungi:
+   ```
+   Key: PIONEX_SECRET_KEY
+   Value: <il_tuo_secret_key_pionex>
+   ```
 
-### 4. Deploy
+#### 6. Deploy
 
-Clicca su "Create Web Service" e Render farà automaticamente il deploy del bot.
+1. Clicca su **"Create Web Service"**
+2. Render inizierà automaticamente il build e il deploy
+3. Potrai vedere i log in tempo reale
+4. Quando vedi "FLYING WHEEL ENGINE: TAKEOFF" nei log, il bot è attivo! 🚀
+
+### 🔍 Come Trovare il Tuo Servizio su Render
+
+Dopo il deploy:
+- Il servizio sarà visibile nel tuo [Render Dashboard](https://dashboard.render.com/)
+- Il nome sarà quello che hai scelto al punto 4 (es: `bot-argento`)
+- Render gli assegnerà un URL tipo: `https://bot-argento-xyz123.onrender.com`
+
+### 🔄 Aggiornamenti Automatici
+
+Una volta collegato, ogni volta che fai un push su GitHub:
+- Render rileverà automaticamente le modifiche
+- Farà il build e deploy della nuova versione
+- Il bot si riavvierà con il nuovo codice
 
 ## 🔐 Sicurezza Pionex API
 
@@ -121,6 +173,51 @@ Bot Argento
 ## ⚠️ Disclaimer
 
 Questo software è fornito "così com'è", senza garanzie di alcun tipo. Il trading di criptovalute comporta rischi. Usa questo bot a tuo rischio e pericolo.
+
+## ❓ FAQ (Domande Frequenti)
+
+### Il repository sarà già presente su Render?
+
+No, devi collegarlo manualmente. Render non crea automaticamente servizi dai repository GitHub. Devi:
+1. Accedere a Render
+2. Autorizzare Render ad accedere a GitHub
+3. Creare un nuovo Web Service selezionando questo repository
+
+### Con che nome apparirà su Render?
+
+Il nome predefinito suggerito da `render.yaml` è **"bot-argento"**, ma puoi cambiarlo durante la creazione del servizio. Il nome che scegli sarà quello che vedrai nel Dashboard di Render.
+
+### Il servizio è gratuito?
+
+Render offre un piano gratuito che include:
+- 750 ore/mese di runtime
+- Il servizio si spegne dopo 15 minuti di inattività
+- Si riavvia automaticamente quando necessario
+
+Per un bot che deve funzionare 24/7, considera un piano a pagamento.
+
+### Cosa succede dopo il primo deploy?
+
+Dopo il primo deploy su Render:
+- Ogni push su GitHub attiverà un nuovo deploy automatico
+- Il bot si riavvierà con le nuove modifiche
+- I log saranno sempre visibili nel Dashboard di Render
+
+### Come faccio a vedere se il bot sta funzionando?
+
+1. Vai nel tuo Dashboard Render
+2. Clicca sul servizio "bot-argento"
+3. Vai nella sezione "Logs"
+4. Dovresti vedere il messaggio "FLYING WHEEL ENGINE: TAKEOFF"
+5. Se vedi errori, controlla che le variabili d'ambiente siano configurate correttamente
+
+### Posso cambiare le API Key dopo il deploy?
+
+Sì! Nel Dashboard di Render:
+1. Vai nel tuo servizio
+2. Sezione "Environment"
+3. Modifica le variabili PIONEX_API_KEY e PIONEX_SECRET_KEY
+4. Salva e Render riavvierà automaticamente il servizio
 
 ## 📄 Licenza
 
