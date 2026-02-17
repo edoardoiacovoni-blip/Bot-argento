@@ -65,7 +65,11 @@ def execute_micro_trade(symbol, trade_type="BUY"):
         return 0
 
 def convert_to_silver(profit):
-    """Accumulate in Silver (PAXG) via Pionex"""
+    """Accumulate in Silver (PAXG) via Pionex
+    
+    Note: Despite the function name 'convert_to_silver', this converts to PAXG (Paxos Gold).
+    The 'silver' terminology is part of the bot's branding ('Bot Argento').
+    """
     if profit > 0:
         if not wait_for_confirmation(f"Conversione di {profit} in Argento (PAXG)"):
             return

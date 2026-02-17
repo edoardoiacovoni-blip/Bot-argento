@@ -114,6 +114,7 @@ Premi INVIO per continuare, 's' per saltare, 'q' per uscire: [INVIO]
 ✓ Confermato! Procedo...
 Moving 0.25 to Silver (PAXG)...
 ✓ Conversione completata: 0.25 in PAXG
+(Nota: PAXG = Paxos Gold, rappresenta oro fisico tokenizzato)
 
 ============================================================
 PASSO: Controllo finale e accumulazione

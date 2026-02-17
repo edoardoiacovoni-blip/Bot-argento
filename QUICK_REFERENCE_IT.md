@@ -24,9 +24,11 @@ python3 test_interactive.py
 1. 🔍 **Controllo segnali istituzionali**
 2. 📊 **Recupero dati di mercato e calcolo opportunità**
 3. 💰 **Esecuzione micro-trade su [SIMBOLO]**
-4. 🥈 **Conversione in Argento (PAXG)**
+4. 🥇 **Conversione in PAXG** (Paxos Gold - oro tokenizzato)
 5. ✅ **Controllo finale e accumulazione**
 6. ⏱️ **Attendere 15 secondi prima del prossimo ciclo**
+
+> **Nota**: Il bot si chiama "Bot Argento" ma accumula in PAXG che rappresenta l'oro (gold). Il nome "Argento" è parte del branding del sistema.
 
 ## Modalità
 

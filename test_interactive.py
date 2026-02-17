@@ -2,6 +2,9 @@
 """
 Test script per verificare la modalità interattiva del bot
 senza eseguire vere operazioni di trading.
+
+Note: Il bot si chiama "Bot Argento" ma accumula in PAXG (Paxos Gold).
+Il termine "Argento" è parte del branding, non della risorsa effettiva.
 """
 
 import sys
@@ -61,6 +64,7 @@ def test_interactive_flow():
     # Test passo 4
     if wait_for_confirmation("Conversione di 0.25 in Argento (PAXG)"):
         print("✓ Conversione completata: 0.25 in PAXG")
+        print("  (Nota: PAXG = Paxos Gold, un token rappresentante oro fisico)")
     
     # Test passo 5
     if wait_for_confirmation("Controllo finale e accumulazione"):
