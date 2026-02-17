@@ -106,6 +106,7 @@ def flying_wheel_engine():
                 time.sleep(30)
                 continue
 
+            opportunities = []
             if wait_for_confirmation("Recupero dati di mercato e calcolo opportunità"):
                 response = client.get_ticker()
                 opportunities = calculate_quantum_jump(response)
@@ -124,8 +125,7 @@ def flying_wheel_engine():
                     print(f"JUMPING: Trend on {opportunity['symbol']} (+{opportunity['priceChangePercent']}%)")
 
             if INTERACTIVE_MODE:
-                if not wait_for_confirmation("Attendere 15 secondi prima del prossimo ciclo"):
-                    pass
+                wait_for_confirmation("Attendere 15 secondi prima del prossimo ciclo")
             
             time.sleep(15)
 

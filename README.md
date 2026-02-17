@@ -1,12 +1,14 @@
 # Bot Argento - Flying Wheel Trading System
 
-Bot di trading automatico che utilizza il "Flying Wheel System" per identificare opportunità di trading e accumulare profitti in Argento (PAXG) tramite la piattaforma Pionex.
+Bot di trading automatico che utilizza il "Flying Wheel System" per identificare opportunità di trading e accumulare profitti in PAXG (Paxos Gold) tramite la piattaforma Pionex.
+
+> **Nota sul nome**: Il bot si chiama "Bot Argento" (Silver Bot) per design/branding, ma accumula in PAXG che rappresenta l'oro (Paxos Gold). Il termine "Argento" nel contesto del bot si riferisce all'accumulo di metalli preziosi in generale.
 
 ## Caratteristiche
 
 - **Analisi 18 punti**: Sistema di analisi del mercato per identificare trend
 - **Micro-trading**: Esecuzione di micro-operazioni su Pionex
-- **Accumulo in Argento**: Conversione automatica dei profitti in PAXG (Paxos Gold)
+- **Accumulo in PAXG**: Conversione automatica dei profitti in PAXG (Paxos Gold - oro tokenizzato)
 - **Modalità Interattiva**: Controllo passo-passo delle operazioni
 
 ## Configurazione
@@ -60,8 +62,8 @@ Quando attivata la modalità interattiva, il bot richiederà conferma per:
 1. **Controllo segnali istituzionali**: Verifica dei segnali di mercato
 2. **Recupero dati di mercato**: Ottiene i dati di mercato e calcola le opportunità
 3. **Esecuzione micro-trade**: Esegue un trade su un simbolo specifico
-4. **Conversione in Argento**: Converte i profitti in PAXG
-5. **Controllo finale e accumulazione**: Verifica e accumula in Silver
+4. **Conversione in PAXG**: Converte i profitti in PAXG (oro tokenizzato)
+5. **Controllo finale e accumulazione**: Verifica e accumula
 6. **Attesa prossimo ciclo**: Pausa di 15 secondi prima del ciclo successivo
 
 ## Struttura del Codice
