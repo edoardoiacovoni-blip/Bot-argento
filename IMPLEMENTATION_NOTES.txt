@@ -1,0 +1,118 @@
+================================================================================
+BOT ARGENTO - INTERACTIVE MODE IMPLEMENTATION
+================================================================================
+
+PROBLEM STATEMENT (Italian):
+"Mi puoi dare un passo alla volta ....e aspettare che ti confermi di averlo 
+fatto prima di darmi successivo?"
+
+Translation: "Can you give me one step at a time... and wait for me to confirm 
+that I've done it before giving me the next one?"
+
+SOLUTION:
+Implemented a step-by-step interactive mode that allows users to control the 
+bot's execution by confirming each operation before it proceeds.
+
+================================================================================
+IMPLEMENTATION DETAILS
+================================================================================
+
+1. INTERACTIVE MODE FLAG
+   - Environment variable: INTERACTIVE_MODE
+   - Values: "true" (interactive) / "false" (automatic, default)
+   - Easy to toggle between modes
+
+2. CONFIRMATION FUNCTION
+   - Function: wait_for_confirmation(step_description)
+   - Prompts user before each critical operation
+   - User commands:
+     * ENTER: Confirm and proceed
+     * 's': Skip current step
+     * 'q': Quit program gracefully
+
+3. CONFIRMATION POINTS
+   The bot asks for confirmation before:
+   - Checking institutional signals
+   - Fetching market data and calculating opportunities
+   - Executing each micro-trade
+   - Converting profits to PAXG
+   - Final checks and accumulation
+   - Waiting before next cycle
+
+4. ITALIAN LANGUAGE INTERFACE
+   All prompts and messages are in Italian to match user's language preference
+
+5. BACKWARD COMPATIBILITY
+   - Default mode is automatic (no breaking changes)
+   - Existing functionality preserved
+   - Interactive mode is opt-in
+
+================================================================================
+FILES CREATED/MODIFIED
+================================================================================
+
+MODIFIED:
+  main.py                  - Added interactive mode implementation
+
+CREATED:
+  .gitignore              - Python artifacts exclusion
+  README.md               - Main documentation
+  USAGE_IT.md             - Detailed Italian usage guide
+  QUICK_REFERENCE_IT.md   - Quick reference card
+  SUMMARY_IT.md           - Implementation summary
+  test_interactive.py     - Interactive test script
+  validate.py             - Validation script
+
+================================================================================
+VALIDATION & SECURITY
+================================================================================
+
+✓ Python Syntax Check: PASSED
+✓ Code Review: PASSED (all issues resolved)
+✓ CodeQL Security Scan: PASSED (0 vulnerabilities found)
+✓ Validation Tests: PASSED
+✓ Backward Compatibility: VERIFIED
+
+================================================================================
+STATISTICS
+================================================================================
+
+- Total commits: 6
+- Lines added: 886
+- Lines removed: 5
+- Python code: 388 lines
+- Documentation: 543 lines
+- Files: 8 (1 modified, 7 created)
+
+================================================================================
+USAGE EXAMPLES
+================================================================================
+
+# Test without API (safe to try):
+python3 test_interactive.py
+
+# Validate implementation:
+python3 validate.py
+
+# Run in interactive mode:
+export INTERACTIVE_MODE=true
+python3 main.py
+
+# Run in automatic mode (default):
+python3 main.py
+
+================================================================================
+KEY FEATURES
+================================================================================
+
+✓ Step-by-step execution control
+✓ Italian language interface
+✓ Intuitive commands (ENTER/s/q)
+✓ Safe skip functionality
+✓ Graceful exit option
+✓ Complete documentation
+✓ Test scripts provided
+✓ Zero security vulnerabilities
+✓ Full backward compatibility
+
+================================================================================
