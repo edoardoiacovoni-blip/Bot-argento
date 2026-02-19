@@ -32,9 +32,10 @@ def execute_micro_trade(symbol, trade_type="BUY"):
         )
         # Calculate actual profit from order execution
         # Market orders return 'fills' with individual execution details
+        # Note: This is an estimated profit margin, actual profit would be realized on sell
         if order and 'fills' in order:
             total_value = sum(float(fill['price']) * float(fill['qty']) for fill in order['fills'])
-            profit = total_value * 0.001  # 0.1% estimated profit
+            profit = total_value * 0.001  # 0.1% estimated profit margin
             return profit
         return 0
     except Exception as e:
@@ -59,10 +60,12 @@ def convert_to_silver(profit):
                 return False
             
             if paxg_price > 0:
-                # Calculate quantity and round to 8 decimal places (common for crypto)
+                # Calculate quantity and round to 8 decimal places
+                # Note: 8 decimals is common for crypto; ideally should use exchange's LOT_SIZE filter
                 quantity = round(profit / paxg_price, 8)
                 
-                # Check if quantity is above a reasonable minimum (0.00001 PAXG)
+                # Check if quantity is above a reasonable minimum
+                # Note: Minimum should ideally come from exchange's MIN_NOTIONAL or LOT_SIZE filters
                 if quantity < 0.00001:
                     print(f"Quantity {quantity} too small, skipping conversion")
                     return False
@@ -95,6 +98,7 @@ def flying_wheel_engine():
                 time.sleep(30)
                 continue
 
+            # Get all market tickers for trend analysis
             response = client.get_ticker()
             
             # Validate response before processing
