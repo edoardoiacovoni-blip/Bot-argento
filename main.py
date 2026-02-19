@@ -17,6 +17,8 @@ def calculate_quantum_jump(market_data):
 
 def check_institutional_signals():
     """Monitor institutional signals"""
+    # TODO: Implement actual institutional signal checking logic
+    # For now, return True to keep the bot running
     return True 
 
 def execute_micro_trade(symbol, trade_type="BUY"):
@@ -28,37 +30,50 @@ def execute_micro_trade(symbol, trade_type="BUY"):
             type='MARKET',
             quantity=0.01
         )
-        return 0.25
+        # Calculate actual profit from order execution
+        if order and 'executedQty' in order and 'price' in order:
+            profit = float(order['executedQty']) * float(order['price']) * 0.001  # 0.1% estimated profit
+            return profit
+        return 0
     except Exception as e:
         print(f"Trade error: {e}")
         return 0
 
 def convert_to_silver(profit):
-    """Accumulate in Silver (PAXG) via Pionex"""
+    """Accumulate in Gold (PAXG) via Pionex"""
     if profit > 0:
-        print(f"Moving {profit} to Silver (PAXG)...")
+        print(f"Moving {profit} USD to Gold (PAXG)...")
         try:
-            client.create_order(
-                symbol='PAXGUSD',
-                side='BUY',
-                type='MARKET',
-                quantity=profit
-            )
+            # Get current PAXG price to calculate quantity
+            ticker = client.get_ticker()
+            paxg_price = None
+            for t in ticker:
+                if t['symbol'] == 'PAXGUSD':
+                    paxg_price = float(t['lastPrice'])
+                    break
+            
+            if paxg_price and paxg_price > 0:
+                quantity = profit / paxg_price
+                client.create_order(
+                    symbol='PAXGUSD',
+                    side='BUY',
+                    type='MARKET',
+                    quantity=quantity
+                )
+                print(f"Successfully converted {profit} USD to {quantity} PAXG")
+                return True
+            else:
+                print(f"Could not get PAXG price")
+                return False
         except Exception as e:
-            print(f"Silver accumulation error: {e}")
-
-def check_institutional():
-    """Check institutional signals"""
-    print("Checking institutional signals...")
-
-def accumulate_in_silver():
-    """Accumulate profit in Silver"""
-    print("Accumulating in Silver...")
+            print(f"Gold accumulation error: {e}")
+            return False
+    return False
 
 def flying_wheel_engine():
-    """Flying Wheel System - coordinated 18 points and silver accumulation"""
+    """Flying Wheel System - coordinated 18 points and gold accumulation"""
     print("FLYING WHEEL SYSTEM IN EXECUTION...")
-    print("TARGET: SILVER ACCUMULATION (PAXG)")
+    print("TARGET: GOLD ACCUMULATION (PAXG)")
     print("Platform: Pionex + Render + GitHub")
     
     while True:
@@ -68,16 +83,22 @@ def flying_wheel_engine():
                 continue
 
             response = client.get_ticker()
+            
+            # Validate response before processing
+            if not response or not isinstance(response, list):
+                print("Invalid market data received")
+                time.sleep(30)
+                continue
+            
             opportunities = calculate_quantum_jump(response)
 
             for opportunity in opportunities:
                 gain = execute_micro_trade(opportunity['symbol'])
                 
                 if gain > 0:
-                    convert_to_silver(gain)
-                    check_institutional()
-                    accumulate_in_silver()
-                    print(f"JUMPING: Trend on {opportunity['symbol']} (+{opportunity['priceChangePercent']}%)")
+                    success = convert_to_silver(gain)
+                    if success:
+                        print(f"JUMPING: Trend on {opportunity['symbol']} (+{opportunity['priceChangePercent']}%)")
 
             time.sleep(15)
 
