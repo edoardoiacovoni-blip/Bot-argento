@@ -31,8 +31,10 @@ def execute_micro_trade(symbol, trade_type="BUY"):
             quantity=0.01
         )
         # Calculate actual profit from order execution
-        if order and 'executedQty' in order and 'price' in order:
-            profit = float(order['executedQty']) * float(order['price']) * 0.001  # 0.1% estimated profit
+        # Market orders return 'fills' with individual execution details
+        if order and 'fills' in order:
+            total_value = sum(float(fill['price']) * float(fill['qty']) for fill in order['fills'])
+            profit = total_value * 0.001  # 0.1% estimated profit
             return profit
         return 0
     except Exception as e:
@@ -44,16 +46,27 @@ def convert_to_silver(profit):
     if profit > 0:
         print(f"Moving {profit} USD to Gold (PAXG)...")
         try:
-            # Get current PAXG price to calculate quantity
-            ticker = client.get_ticker()
-            paxg_price = None
-            for t in ticker:
-                if t['symbol'] == 'PAXGUSD':
-                    paxg_price = float(t['lastPrice'])
-                    break
+            # Get current PAXG price - fetch only PAXGUSD ticker for efficiency
+            ticker = client.get_ticker(symbol='PAXGUSD')
             
-            if paxg_price and paxg_price > 0:
-                quantity = profit / paxg_price
+            # Handle both single ticker dict and list responses
+            if isinstance(ticker, list) and len(ticker) > 0:
+                paxg_price = float(ticker[0]['lastPrice'])
+            elif isinstance(ticker, dict) and 'lastPrice' in ticker:
+                paxg_price = float(ticker['lastPrice'])
+            else:
+                print(f"Could not get PAXG price")
+                return False
+            
+            if paxg_price > 0:
+                # Calculate quantity and round to 8 decimal places (common for crypto)
+                quantity = round(profit / paxg_price, 8)
+                
+                # Check if quantity is above a reasonable minimum (0.00001 PAXG)
+                if quantity < 0.00001:
+                    print(f"Quantity {quantity} too small, skipping conversion")
+                    return False
+                
                 client.create_order(
                     symbol='PAXGUSD',
                     side='BUY',
@@ -63,7 +76,7 @@ def convert_to_silver(profit):
                 print(f"Successfully converted {profit} USD to {quantity} PAXG")
                 return True
             else:
-                print(f"Could not get PAXG price")
+                print(f"Invalid PAXG price: {paxg_price}")
                 return False
         except Exception as e:
             print(f"Gold accumulation error: {e}")
@@ -85,8 +98,8 @@ def flying_wheel_engine():
             response = client.get_ticker()
             
             # Validate response before processing
-            if not response or not isinstance(response, list):
-                print("Invalid market data received")
+            if not response or not isinstance(response, list) or len(response) == 0:
+                print("Invalid or empty market data received")
                 time.sleep(30)
                 continue
             
