@@ -16,9 +16,14 @@ Bot di trading automatico che utilizza il "Flying Wheel System" per identificare
 ### Variabili d'Ambiente Richieste
 
 ```bash
+# Inserisci la tua chiave API di Pionex (non condividere mai queste chiavi!)
 API_KEY=your_pionex_api_key
+
+# Inserisci la tua secret key di Pionex
 SECRET_KEY=your_pionex_secret_key
-INTERACTIVE_MODE=TRUE  # Imposta a "true" per attivare la modalità interattiva
+
+# Imposta a "true" per attivare la modalità interattiva
+INTERACTIVE_MODE=true
 ```
 
 ## Modalità di Esecuzione
