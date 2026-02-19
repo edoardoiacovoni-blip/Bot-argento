@@ -18,7 +18,7 @@ Bot di trading automatico che utilizza il "Flying Wheel System" per identificare
 ```bash
 API_KEY=your_pionex_api_key
 SECRET_KEY=your_pionex_secret_key
-INTERACTIVE_MODE=false  # Imposta a "true" per attivare la modalità interattiva
+INTERACTIVE_MODE=TRUE  # Imposta a "true" per attivare la modalità interattiva
 ```
 
 ## Modalità di Esecuzione
