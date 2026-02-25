@@ -2,7 +2,7 @@ services:
   - type: worker
     name: bot-argento
     env: python
-    branch: copilot/step-by-step-guidance
+    branch: main
     buildCommand: pip install -r requirements.txt
     startCommand: python3 main.py
     envVars:
