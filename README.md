@@ -12,6 +12,50 @@ Bot di trading automatico per accumulare argento (PAXG) tramite Pionex.
 - Deploy su Render Cloud Platform
 - Monitoraggio segnali istituzionali
 
+## ⚙️ Come Funziona
+
+### Il Sistema Flying Wheel
+
+Il bot implementa un sistema di trading automatico chiamato **"Flying Wheel"** che opera in un ciclo continuo su Pionex:
+
+```
+Loop principale
+├── 1. Controlla segnali istituzionali
+├── 2. Recupera dati di mercato (ticker)
+├── 3. Analisi 18 punti → identifica opportunità
+├── 4. Esegue micro-operazioni di acquisto
+└── 5. Converte i profitti in Silver (PAXG)
+```
+
+### Analisi 18 Punti (`calculate_quantum_jump`)
+
+Il cuore del bot è l'**analisi 18 punti** (`quantumJump`): filtra i ticker di mercato cercando asset con una variazione di prezzo superiore all'**1.8%** (`priceChangePercent > 1.8`). Vengono selezionate al massimo le prime **5 opportunità** più rilevanti.
+
+### Micro-Operazioni (`execute_micro_trade`)
+
+Per ogni opportunità identificata, il bot esegue una **micro-operazione** di acquisto tramite l'API Pionex:
+- Ordine di tipo `MARKET`
+- Quantità fissa di `0.01` unità
+- Simbolo dell'asset individuato dall'analisi
+
+### Accumulo in Argento (`convert_to_silver`)
+
+Ogni profitto generato viene automaticamente convertito in **PAXG** (PAX Gold, token ancorato al prezzo dell'oro fisico) tramite un ordine `MARKET` su `PAXGUSD`. L'obiettivo è accumulare valore in un asset stabile legato ai metalli preziosi.
+
+### Monitoraggio Connessioni (`verify_connections`)
+
+All'avvio, il bot verifica:
+1. Presenza delle credenziali API Pionex (`PIONEX_API_KEY`, `PIONEX_SECRET_KEY`)
+2. Raggiungibilità dell'API Pionex
+3. Ambiente di esecuzione (Render vs locale)
+
+### Gestione degli Errori
+
+Il bot è progettato per essere **resiliente**:
+- Se il recupero dei ticker fallisce, attende 30 secondi e riprova
+- In caso di errore generico nel ciclo, attende 10 secondi e riprova
+- Se le credenziali non sono configurate, il bot si arresta con un messaggio chiaro
+
 ## 📋 Requisiti
 
 - Python 3.8+
