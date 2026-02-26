@@ -16,6 +16,7 @@ except ImportError:
     pass  # python-dotenv opzionale in produzione (Render inietta le env vars)
 
 from src.flying_wheel import engine
+from src.pionex_client import PionexClient
 
 logging.basicConfig(
     level=logging.INFO,
@@ -56,7 +57,7 @@ def main() -> None:
     else:
         logger.warning("Modalità REALE attiva — gli ordini verranno inviati a Pionex!")
 
-    ctx = {"config": config}
+    ctx = {"config": config, "client": PionexClient(config["api_key"], config["secret_key"])}
     all_passed = engine.run(ctx)
 
     if not all_passed:

@@ -7,8 +7,13 @@ una tupla (passed: bool, motivo: str).
 
 
 def check_01(ctx: dict) -> tuple[bool, str]:
-    """TODO: Verifica connessione API Pionex."""
-    return True, "check_01: placeholder PASS"
+    """Verifica connessione API Pionex."""
+    client = ctx.get("client")
+    if client is None:
+        return False, "check_01: client Pionex non inizializzato"
+    if client.test_connection():
+        return True, "check_01: connessione API Pionex OK"
+    return False, "check_01: connessione API Pionex fallita (credenziali o rete)"
 
 
 def check_02(ctx: dict) -> tuple[bool, str]:
