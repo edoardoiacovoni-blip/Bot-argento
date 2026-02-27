@@ -6,6 +6,48 @@ Bot di trading automatico su Pionex (PAXG/USDT) basato sul framework **Flying Wh
 
 Bot Argento esegue un'analisi strutturata in 18 controlli prima di effettuare operazioni di trading. In modalità `DRY_RUN` (default) il bot non esegue ordini reali, consentendo di testare la logica senza rischi.
 
+## ⚙️ Come Funziona
+
+### Il Sistema Flying Wheel
+
+Il bot implementa un sistema di trading automatico chiamato **"Flying Wheel"** che opera tramite il motore a 18 controlli su Pionex:
+
+```
+Loop principale
+├── 1. Controlla segnali istituzionali
+├── 2. Recupera dati di mercato (ticker)
+├── 3. Analisi 18 punti → identifica opportunità (variazione > 1.8%)
+├── 4. Esegue micro-operazioni di acquisto (0.01 unità)
+└── 5. Converte i profitti in PAXG (oro fisico)
+```
+
+### Analisi 18 Punti (`src/flying_wheel/engine.py`)
+
+Il cuore del bot è il **motore Flying Wheel a 18 controlli**: esegue in sequenza 18 verifiche prima di ogni operazione. Tutti i check devono risultare `PASS` per procedere. Le verifiche coprono:
+- Connessione API e saldo disponibile
+- Prezzo corrente, spread bid/ask e volume 24h
+- Indicatori tecnici: trend (EMA), RSI, MACD, volatilità (ATR/Bollinger)
+- Correlazione con l'indice oro spot e notizie macro rilevanti
+- Dimensione posizione, stop-loss, take-profit e limiti di rischio globale
+
+### Micro-Operazioni (`execute_micro_trade`)
+
+Per ogni opportunità identificata, il bot esegue una **micro-operazione** di acquisto tramite l'API Pionex:
+- Ordine di tipo `MARKET`
+- Quantità fissa di `0.01` unità
+- Simbolo dell'asset individuato dall'analisi
+
+### Accumulo in Oro (`convert_to_gold`)
+
+Ogni profitto generato viene automaticamente convertito in **PAXG** (PAX Gold, token ancorato al prezzo dell'oro fisico) tramite un ordine `MARKET` su `PAXGUSD`.
+
+### Gestione degli Errori
+
+Il bot è progettato per essere **resiliente**:
+- Se un check fallisce, l'operazione viene annullata e il ciclo si ripete
+- In caso di errore generico, attende e riprova automaticamente
+- Se le credenziali non sono configurate, il bot si arresta con un messaggio chiaro
+
 ## Struttura del Progetto
 
 ```
