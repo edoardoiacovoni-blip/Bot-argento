@@ -38,7 +38,7 @@ Per ogni opportunità identificata, il bot esegue una **micro-operazione** di ac
 - Quantità fissa di `0.01` unità
 - Simbolo dell'asset individuato dall'analisi
 
-### Accumulo in Argento (`convert_to_silver`)
+### Accumulo in Oro (PAXG) (`convert_to_silver`)
 
 Ogni profitto generato viene automaticamente convertito in **PAXG** (PAX Gold, token ancorato al prezzo dell'oro fisico) tramite un ordine `MARKET` su `PAXGUSD`. L'obiettivo è accumulare valore in un asset stabile legato ai metalli preziosi.
 
