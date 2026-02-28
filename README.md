@@ -70,7 +70,7 @@ Bot-argento/
 |--------------------|:------------:|----------------------------------------------|
 | `PIONEX_API_KEY`   | ✅            | API Key ottenuta dal pannello Pionex          |
 | `PIONEX_SECRET_KEY`| ✅            | Secret Key ottenuta dal pannello Pionex       |
-| `DRY_RUN`          | ❌            | Se `1` (default), nessun ordine reale viene eseguito |
+| `DRY_RUN`          | ❌            | Se `0` (default), nessun ordine reale viene eseguito |
 
 ## Come Eseguire in Locale
 
