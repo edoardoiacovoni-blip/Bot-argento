@@ -30,6 +30,7 @@ from urllib.parse import urlencode
 # Configuration from Render environment
 API_KEY = os.getenv("PIONEX_API_KEY")
 SECRET_KEY = os.getenv("PIONEX_SECRET_KEY")
+DRY_RUN = os.getenv("DRY_RUN", "1").strip().lower() not in ("0", "false")
 
 # Pionex API Configuration
 PIONEX_API_BASE = "https://api.pionex.com"
@@ -128,6 +129,9 @@ def check_institutional_signals():
 
 def execute_micro_trade(symbol, trade_type="BUY"):
     """Execute micro-operation via Pionex"""
+    if DRY_RUN:
+        print(f"DRY_RUN: would execute {trade_type} order for {symbol}")
+        return 0.25
     try:
         order = client.create_order(
             symbol=symbol,
@@ -144,6 +148,9 @@ def convert_to_silver(profit):
     """Accumulate in Silver (PAXG) via Pionex"""
     if profit > 0:
         print(f"Moving {profit} to Silver (PAXG)...")
+        if DRY_RUN:
+            print("DRY_RUN: would place PAXGUSD BUY order")
+            return
         try:
             client.create_order(
                 symbol='PAXGUSD',
@@ -196,6 +203,8 @@ def flying_wheel_engine():
     print("FLYING WHEEL SYSTEM IN EXECUTION...")
     print("TARGET: SILVER ACCUMULATION (PAXG)")
     print("Platform: Pionex + Render + GitHub")
+    if DRY_RUN:
+        print("MODE: DRY RUN (no real orders will be placed)")
     
     # Verify connections before starting
     if not verify_connections():
