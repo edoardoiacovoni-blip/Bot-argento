@@ -11,3 +11,31 @@ services:
         sync: false
       - key: DRY_RUN
         value: "0"
+      - key: SYMBOL
+        value: "XAG_USDT"
+      - key: TIMEFRAME
+        value: "5m"
+      - key: LOOP_SECONDS
+        value: "10"
+      - key: MICRO_TRADE_USDT
+        value: "5"
+      - key: MAX_TRADES_PER_HOUR
+        value: "20"
+      - key: MAX_DAILY_DRAWDOWN
+        value: "0.02"
+      - key: MAX_SPREAD_BPS
+        value: "10"
+      - key: STRICT_EXTERNALS
+        value: "0"
+      - key: SESSION_START_UTC
+        value: "9"
+      - key: SESSION_END_UTC
+        value: "22"
+      - key: RSI_OVERSOLD
+        value: "30"
+      - key: MAX_CONSECUTIVE_LOSSES
+        value: "5"
+      - key: DXY_PROVIDER
+        value: "none"
+      - key: NEWS_PROVIDER
+        value: "none"

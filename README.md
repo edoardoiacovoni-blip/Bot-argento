@@ -1,76 +1,113 @@
 # Bot Argento 🤖
 
-Bot di trading automatico su Pionex (PAXG/USDT) basato sul framework **Flying Wheel a 18 punti**.
+Bot di trading automatico su Pionex per **XAG_USDT (argento)** basato sul framework **Flying Wheel a 18 punti**.
 
 ## Descrizione
 
-Bot Argento esegue un'analisi strutturata in 18 controlli prima di effettuare operazioni di trading. In modalità `DRY_RUN` (default) il bot non esegue ordini reali, consentendo di testare la logica senza rischi.
+Bot Argento esegue un'analisi strutturata in 18 controlli tecnici prima di effettuare operazioni di trading su XAG_USDT. In modalità `DRY_RUN` (default) il bot non esegue ordini reali, consentendo di testare la logica senza rischi.
 
 ## ⚙️ Come Funziona
 
 ### Il Sistema Flying Wheel
 
-Il bot implementa un sistema di trading automatico chiamato **"Flying Wheel"** che opera tramite il motore a 18 controlli su Pionex:
+Il bot implementa un sistema di trading automatico chiamato **"Flying Wheel"** che opera in un loop continuo ogni `LOOP_SECONDS` secondi (default: 10s):
 
 ```
-Loop principale
-├── 1. Controlla segnali istituzionali
-├── 2. Recupera dati di mercato (ticker)
-├── 3. Analisi 18 punti → identifica opportunità (variazione > 1.8%)
-├── 4. Esegue micro-operazioni di acquisto (0.01 unità)
-└── 5. Converte i profitti in PAXG (oro fisico)
+Loop continuo (ogni 10 secondi)
+├── 1. Recupera klines OHLCV da Pionex (XAG_USDT, 5m)
+├── 2. Calcola indicatori (EMA200, RSI14, ATR14, VWAP, volume)
+├── 3. Calcola swing high/low e piano di trading (entry/SL/TP)
+├── 4. Esegue 18 check Flying Wheel
+└── 5. Se tutti PASS: invia ordine MARKET (o simula in DRY_RUN)
 ```
 
-### Analisi 18 Punti (`src/flying_wheel/engine.py`)
+### 18 Controlli Flying Wheel (`src/flying_wheel/checks.py`)
 
-Il cuore del bot è il **motore Flying Wheel a 18 controlli**: esegue in sequenza 18 verifiche prima di ogni operazione. Tutti i check devono risultare `PASS` per procedere. Le verifiche coprono:
-- Connessione API e saldo disponibile
-- Prezzo corrente, spread bid/ask e volume 24h
-- Indicatori tecnici: trend (EMA), RSI, MACD, volatilità (ATR/Bollinger)
-- Correlazione con l'indice oro spot e notizie macro rilevanti
-- Dimensione posizione, stop-loss, take-profit e limiti di rischio globale
+| # | Controllo | Descrizione |
+|---|-----------|-------------|
+| 01 | Trend EMA200 | close > EMA200 → trend rialzista |
+| 02 | Market Structure BOS | ultimo high rompe lo swing high recente |
+| 03 | Order Block | candela bearish prima di impulso rialzista |
+| 04 | Liquidity Sweep | ultimo low spazza il minimo precedente con recupero |
+| 05 | FVG Imbalance | gap rialzista tra candela 1 e candela 3 |
+| 06 | Fibonacci OTE | prezzo nel range 61.8%–78.6% di ritracciamento |
+| 07 | RSI Oversold | RSI14 < soglia configurabile (default: 30) |
+| 08 | Volume Spike | volume corrente > media 20 barre |
+| 09 | ATR Volatilità | ATR% in banda accettabile (evita spike) |
+| 10 | DXY Correlation | DXY bearish = favorevole per XAG (provider pluggabile) |
+| 11 | Candlestick | pinbar/hammer o engulfing rialzista |
+| 12 | VWAP Alignment | close > VWAP per posizione long |
+| 13 | Risk/Reward >= 3 | R:R calcolato su SL/TP del piano |
+| 14 | News Filter | blocca su eventi macro ad alto impatto (provider pluggabile) |
+| 15 | Daily Drawdown | blocca se perdita giornaliera supera la soglia |
+| 16 | Spread Check | spread bid/ask < max_spread_bps |
+| 17 | Time Session | trading solo nelle ore UTC configurate |
+| 18 | Overtrading Guard | limita trade/ora e perdite consecutive |
 
-### Micro-Operazioni (`execute_micro_trade`)
+### Provider Esterni (DXY e Notizie)
 
-Per ogni opportunità identificata, il bot esegue una **micro-operazione** di acquisto tramite l'API Pionex:
-- Ordine di tipo `MARKET`
-- Quantità fissa di `0.01` unità
-- Simbolo dell'asset individuato dall'analisi
+I check 10 (DXY) e 14 (News) usano provider pluggabili:
 
-### Accumulo in Oro (`convert_to_gold`)
+- `DXY_PROVIDER=none` (default): check 10 viene **saltato** (non blocca il trading)
+- `DXY_PROVIDER=url`: recupera bias DXY da un endpoint HTTP che risponde `{"bias": "bullish"|"bearish"}`
+- `STRICT_EXTERNALS=0` (default): provider mancante → check passa (non bloccante)
+- `STRICT_EXTERNALS=1`: provider mancante → check fallisce (blocca il trading)
 
-Ogni profitto generato viene automaticamente convertito in **PAXG** (PAX Gold, token ancorato al prezzo dell'oro fisico) tramite un ordine `MARKET` su `PAXGUSD`.
+### Gestione Rischio
 
-### Gestione degli Errori
-
-Il bot è progettato per essere **resiliente**:
-- Se un check fallisce, l'operazione viene annullata e il ciclo si ripete
-- In caso di errore generico, attende e riprova automaticamente
-- Se le credenziali non sono configurate, il bot si arresta con un messaggio chiaro
+- **Max trade/ora**: `MAX_TRADES_PER_HOUR` (default: 20)
+- **Max drawdown giornaliero**: `MAX_DAILY_DRAWDOWN` (default: 2% del saldo)
+- **Max perdite consecutive**: `MAX_CONSECUTIVE_LOSSES` (default: 5)
+- **Spread massimo**: `MAX_SPREAD_BPS` (default: 10 basis points)
+- **Sessione di trading**: ore UTC `SESSION_START_UTC`–`SESSION_END_UTC` (default: 9–22)
 
 ## Struttura del Progetto
 
 ```
 Bot-argento/
-├── main.py                        # Entry point principale
+├── main.py                              # Entry point — worker continuo
 ├── src/
-│   └── flying_wheel/
-│       ├── engine.py              # Motore Flying Wheel (18 controlli)
-│       └── checks.py              # Definizioni dei 18 check
+│   ├── pionex_client.py                 # Client API Pionex (klines, orderbook, ordini)
+│   ├── flying_wheel/
+│   │   ├── engine.py                    # Motore Flying Wheel (18 controlli)
+│   │   └── checks.py                    # Implementazione reale dei 18 check
+│   ├── strategy/
+│   │   └── bot_argento_trading.py       # DataFrame, indicatori, piano di trading
+│   └── providers/
+│       ├── dxy_provider.py              # Provider DXY (pluggabile)
+│       └── news_provider.py             # Provider notizie (pluggabile)
 ├── requirements.txt
-├── render.yaml                    # Configurazione deploy su Render (Worker)
-├── .env.example                   # Template variabili d'ambiente
-├── GUIDA_RENDER.md                # Guida deploy su Render
-└── README.md                      # Questo file
+├── render.yaml                          # Configurazione deploy su Render (Worker)
+├── .env.example                         # Template variabili d'ambiente
+├── GUIDA_RENDER.md                      # Guida deploy su Render
+└── README.md                            # Questo file
 ```
 
 ## Variabili d'Ambiente
 
-| Variabile          | Obbligatoria | Descrizione                                  |
-|--------------------|:------------:|----------------------------------------------|
-| `PIONEX_API_KEY`   | ✅            | API Key ottenuta dal pannello Pionex          |
-| `PIONEX_SECRET_KEY`| ✅            | Secret Key ottenuta dal pannello Pionex       |
-| `DRY_RUN`          | ❌            | Se `0` (default), nessun ordine reale viene eseguito |
+| Variabile | Default | Descrizione |
+|-----------|---------|-------------|
+| `PIONEX_API_KEY` | — | API Key Pionex (**obbligatoria**) |
+| `PIONEX_SECRET_KEY` | — | Secret Key Pionex (**obbligatoria**) |
+| `DRY_RUN` | `1` | `0` = trading reale, `1` = simulazione |
+| `SYMBOL` | `XAG_USDT` | Simbolo di trading |
+| `TIMEFRAME` | `5m` | Timeframe klines |
+| `LOOP_SECONDS` | `10` | Intervallo loop in secondi |
+| `MICRO_TRADE_USDT` | `5` | Importo micro-trade in USDT |
+| `MAX_TRADES_PER_HOUR` | `20` | Max trade per ora |
+| `MAX_DAILY_DRAWDOWN` | `0.02` | Max drawdown giornaliero (2%) |
+| `MAX_SPREAD_BPS` | `10` | Max spread bid/ask in basis points |
+| `STRICT_EXTERNALS` | `0` | `1` = provider DXY/News bloccanti se mancanti |
+| `SESSION_START_UTC` | `9` | Ora UTC inizio sessione |
+| `SESSION_END_UTC` | `22` | Ora UTC fine sessione |
+| `RSI_OVERSOLD` | `30` | Soglia RSI oversold |
+| `MAX_CONSECUTIVE_LOSSES` | `5` | Max perdite consecutive |
+| `DXY_PROVIDER` | `none` | Provider DXY: `none` o `url` |
+| `DXY_URL` | — | URL API DXY (se `DXY_PROVIDER=url`) |
+| `DXY_API_KEY` | — | API key provider DXY (opzionale) |
+| `NEWS_PROVIDER` | `none` | Provider notizie: `none` o `url` |
+| `NEWS_URL` | — | URL API notizie (se `NEWS_PROVIDER=url`) |
+| `NEWS_API_KEY` | — | API key provider notizie (opzionale) |
 
 ## Come Eseguire in Locale
 
@@ -122,13 +159,9 @@ In sintesi:
 
 ## Note di Sicurezza
 
-⚠️ **Non committare mai** le chiavi API reali nel repository.  
-✅ Usa sempre variabili d'ambiente o il file `.env` (già escluso da `.gitignore`).  
-✅ Testa sempre con `DRY_RUN=1` prima di andare in produzione.  
+⚠️ **Non committare mai** le chiavi API reali nel repository.
+✅ Usa sempre variabili d'ambiente o il file `.env` (già escluso da `.gitignore`).
+✅ Testa sempre con `DRY_RUN=1` prima di andare in produzione.
+🔒 Le API key devono avere solo permesso **Trading** — **NON abilitare Withdraw**.
 🔒 Ruota le API key periodicamente dal pannello Pionex.
 
-## Flying Wheel — 18 Controlli
-
-Il motore Flying Wheel esegue 18 controlli sequenziali prima di ogni ciclo di trading.  
-Tutti i check devono risultare `PASS` per procedere con un ordine reale.  
-I dettagli dei singoli controlli sono definiti in `src/flying_wheel/checks.py`.

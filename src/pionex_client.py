@@ -94,6 +94,44 @@ class PionexClient:
             {"symbol": symbol, "side": side, "type": order_type, "quantity": quantity},
         )
 
+    def get_klines(self, symbol: str, interval: str, limit: int = 100) -> list:
+        """Recupera dati OHLCV (klines) per il simbolo e l'intervallo specificati.
+
+        :param symbol:   coppia di trading, es. 'XAG_USDT'
+        :param interval: intervallo temporale, es. '5m', '1h'
+        :param limit:    numero massimo di candele da restituire
+        :return: lista di [timestamp, open, high, low, close, volume], o [] in caso di errore.
+        """
+        result = self._request(
+            "GET",
+            "/api/v1/market/klines",
+            {"symbol": symbol, "interval": interval, "limit": limit},
+        )
+        if result is None:
+            return []
+        data = result.get("data", {})
+        if isinstance(data, dict):
+            return data.get("klines", data.get("data", []))
+        if isinstance(data, list):
+            return data
+        logger.warning("Formato klines inatteso da Pionex: %s", type(data).__name__)
+        return []
+
+    def get_orderbook(self, symbol: str):
+        """Recupera il book degli ordini (bid/ask) per il simbolo.
+
+        :param symbol: coppia di trading, es. 'XAG_USDT'
+        :return: dizionario con 'bids' e 'asks', o None in caso di errore.
+        """
+        return self._request("GET", "/api/v1/market/depth", {"symbol": symbol})
+
+    def get_balances(self):
+        """Recupera i saldi dell'account.
+
+        :return: dizionario con i saldi, o None in caso di errore.
+        """
+        return self._request("GET", "/api/v1/account/balances")
+
     def test_connection(self) -> bool:
         """Verifica che le credenziali siano valide e l'API raggiungibile.
 

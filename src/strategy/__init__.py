@@ -1,0 +1,1 @@
+"""Modulo strategia Bot Argento."""
