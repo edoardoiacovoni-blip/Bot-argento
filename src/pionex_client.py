@@ -40,12 +40,14 @@ class PionexClient:
     def _request(self, method: str, endpoint: str, params: dict | None = None):
         """Effettua una richiesta autenticata all'API di Pionex.
 
+        Per GET:  tutti i parametri (inclusi auth) vanno nella query string.
+        Per POST: i parametri di autenticazione (timestamp, recvWindow, signature)
+                  vanno nella query string; il payload dell'ordine va nel body JSON.
+
         :return: dizionario JSON della risposta, o None in caso di errore.
         """
         params = dict(params or {})
-        params["timestamp"] = int(time.time() * 1000)
-        params["recvWindow"] = 5000  # finestra di validità della richiesta in ms (5 s)
-        params["signature"] = self._sign(params)
+        ts = int(time.time() * 1000)
 
         headers = {
             "PIONEX-KEY": self.api_key,
@@ -55,9 +57,18 @@ class PionexClient:
 
         try:
             if method == "GET":
-                response = requests.get(url, params=params, headers=headers, timeout=10)
+                # Firma tutti i parametri GET nella query string
+                query_params = {**params, "timestamp": ts, "recvWindow": 5000}
+                query_params["signature"] = self._sign(query_params)
+                response = requests.get(url, params=query_params, headers=headers, timeout=10)
             elif method == "POST":
-                response = requests.post(url, json=params, headers=headers, timeout=10)
+                # Firma solo i parametri di autenticazione nella query string;
+                # il payload dell'ordine va nel body JSON
+                auth_params = {"timestamp": ts, "recvWindow": 5000}
+                auth_params["signature"] = self._sign(auth_params)
+                response = requests.post(
+                    url, params=auth_params, json=params, headers=headers, timeout=10
+                )
             else:
                 raise ValueError(f"Metodo HTTP non supportato: {method}")
             response.raise_for_status()
