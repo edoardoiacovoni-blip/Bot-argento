@@ -88,7 +88,7 @@ def load_config() -> dict:
 
 def _reset_daily_state_if_needed(risk_state: dict) -> None:
     """Resetta lo stato giornaliero se è un nuovo giorno UTC."""
-    today = datetime.date.today()
+    today = datetime.datetime.now(datetime.timezone.utc).date()
     if risk_state.get("day") != today:
         risk_state["day"] = today
         risk_state["daily_loss_usdt"] = 0.0

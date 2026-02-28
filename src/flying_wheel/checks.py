@@ -370,7 +370,7 @@ def check_17(ctx: dict) -> tuple[bool, str]:
     config = ctx.get("config", {})
     session_start = int(config.get("session_start_utc", 9))
     session_end = int(config.get("session_end_utc", 22))
-    hour = datetime.datetime.utcnow().hour
+    hour = datetime.datetime.now(datetime.timezone.utc).hour
     if session_start <= hour < session_end:
         return True, f"check_17: sessione attiva — ora UTC {hour:02d}:xx"
     return (
