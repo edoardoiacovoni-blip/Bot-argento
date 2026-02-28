@@ -1,3 +1,25 @@
+"""
+Bot Argento - Flying Wheel System
+==================================
+Bot di trading automatico che accumula metalli preziosi (PAXG) tramite Pionex.
+
+Flusso principale:
+1. Verifica le credenziali API e le connessioni al momento dell'avvio.
+2. Entra in un ciclo continuo (Flying Wheel Engine):
+   a. Controlla i segnali istituzionali.
+   b. Recupera i dati di mercato in tempo reale dall'API Pionex.
+   c. Applica l'analisi 18 punti (quantum jump) per trovare asset con
+      variazione di prezzo > 1.8%.
+   d. Esegue micro-operazioni di acquisto (0.01 unità) sulle opportunità.
+   e. Converte i profitti in PAXG (PAX Gold, token ancorato all'oro fisico)
+      tramite ordini MARKET su PAXGUSD.
+3. In caso di errori transitori, riprova automaticamente dopo un breve ritardo.
+
+Variabili d'ambiente richieste:
+    PIONEX_API_KEY    -- API key dell'account Pionex
+    PIONEX_SECRET_KEY -- Secret key dell'account Pionex
+"""
+
 import requests
 import time
 import os
