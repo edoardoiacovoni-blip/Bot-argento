@@ -1,10 +1,10 @@
 # Bot Argento 🤖
 
-Bot di trading automatico su Pionex (PAXG/USDT) basato sul framework **Flying Wheel a 18 punti**.
+Bot di trading automatico su Pionex (argento SPOT) basato sul framework **Flying Wheel a 18 punti**.
 
 ## Descrizione
 
-Bot Argento esegue un'analisi strutturata in 18 controlli prima di effettuare operazioni di trading. In modalità `DRY_RUN` (default) il bot non esegue ordini reali, consentendo di testare la logica senza rischi.
+Bot Argento esegue un'analisi strutturata in 18 controlli prima di effettuare operazioni di accumulo argento. In modalità `DRY_RUN` (default) il bot non esegue ordini reali, consentendo di testare la logica senza rischi.
 
 ## ⚙️ Come Funziona
 
@@ -17,8 +17,8 @@ Loop principale
 ├── 1. Controlla segnali istituzionali
 ├── 2. Recupera dati di mercato (ticker)
 ├── 3. Analisi 18 punti → identifica opportunità (variazione > 1.8%)
-├── 4. Esegue micro-operazioni di acquisto (0.01 unità)
-└── 5. Converte i profitti in PAXG (oro fisico)
+├── 4. Esegue micro-operazioni di acquisto
+└── 5. Accumula argento SPOT tramite SILVER_SYMBOL
 ```
 
 ### Analisi 18 Punti (`src/flying_wheel/engine.py`)
@@ -27,19 +27,15 @@ Il cuore del bot è il **motore Flying Wheel a 18 controlli**: esegue in sequenz
 - Connessione API e saldo disponibile
 - Prezzo corrente, spread bid/ask e volume 24h
 - Indicatori tecnici: trend (EMA), RSI, MACD, volatilità (ATR/Bollinger)
-- Correlazione con l'indice oro spot e notizie macro rilevanti
+- Correlazione con l'indice argento spot e notizie macro rilevanti
 - Dimensione posizione, stop-loss, take-profit e limiti di rischio globale
 
-### Micro-Operazioni (`execute_micro_trade`)
+### Accumulo Argento (`accumulate_silver`)
 
-Per ogni opportunità identificata, il bot esegue una **micro-operazione** di acquisto tramite l'API Pionex:
-- Ordine di tipo `MARKET`
-- Quantità fissa di `0.01` unità
-- Simbolo dell'asset individuato dall'analisi
-
-### Accumulo in Oro (`convert_to_gold`)
-
-Ogni profitto generato viene automaticamente convertito in **PAXG** (PAX Gold, token ancorato al prezzo dell'oro fisico) tramite un ordine `MARKET` su `PAXGUSD`.
+Dopo aver superato tutti i 18 controlli, il bot esegue un **ordine MARKET BUY** per accumulare argento SPOT:
+- Simbolo configurabile tramite `SILVER_SYMBOL` (es. `XAG_USDT`)
+- Importo fisso in USDT configurabile tramite `SILVER_BUY_AMOUNT_USDT`
+- Utilizza il client REST interno `PionexClient` (nessuna dipendenza esterna)
 
 ### Gestione degli Errori
 
@@ -54,6 +50,7 @@ Il bot è progettato per essere **resiliente**:
 Bot-argento/
 ├── main.py                        # Entry point principale
 ├── src/
+│   ├── pionex_client.py           # Client REST autenticato per Pionex
 │   └── flying_wheel/
 │       ├── engine.py              # Motore Flying Wheel (18 controlli)
 │       └── checks.py              # Definizioni dei 18 check
@@ -66,11 +63,13 @@ Bot-argento/
 
 ## Variabili d'Ambiente
 
-| Variabile          | Obbligatoria | Descrizione                                  |
-|--------------------|:------------:|----------------------------------------------|
-| `PIONEX_API_KEY`   | ✅            | API Key ottenuta dal pannello Pionex          |
-| `PIONEX_SECRET_KEY`| ✅            | Secret Key ottenuta dal pannello Pionex       |
-| `DRY_RUN`          | ❌            | Se `0` (default), nessun ordine reale viene eseguito |
+| Variabile                 | Obbligatoria | Descrizione                                                      |
+|---------------------------|:------------:|------------------------------------------------------------------|
+| `PIONEX_API_KEY`          | ✅            | API Key ottenuta dal pannello Pionex                             |
+| `PIONEX_SECRET_KEY`       | ✅            | Secret Key ottenuta dal pannello Pionex                          |
+| `SILVER_SYMBOL`           | ✅            | Coppia SPOT argento su Pionex (es. `XAG_USDT`)                  |
+| `SILVER_BUY_AMOUNT_USDT`  | ❌            | Importo in USDT per ogni acquisto di argento (default: `10`)     |
+| `DRY_RUN`                 | ❌            | `1` = nessun ordine reale (default consigliato), `0` = trading reale |
 
 ## Come Eseguire in Locale
 
@@ -94,7 +93,7 @@ pip install -r requirements.txt
 
 ```bash
 cp .env.example .env
-# Modifica .env con le tue chiavi API reali
+# Modifica .env con le tue chiavi API reali e il simbolo argento corretto
 ```
 
 ### 4. Esegui in modalità DRY_RUN (sicura, default)
@@ -117,7 +116,7 @@ In sintesi:
 1. Crea un account su [Render](https://render.com)
 2. Collega il repository GitHub
 3. Render rileva automaticamente `render.yaml` e configura il Worker
-4. Aggiungi `PIONEX_API_KEY` e `PIONEX_SECRET_KEY` nelle Environment Variables
+4. Aggiungi `PIONEX_API_KEY`, `PIONEX_SECRET_KEY` e `SILVER_SYMBOL` nelle Environment Variables
 5. Fai il deploy
 
 ## Note di Sicurezza
@@ -132,3 +131,4 @@ In sintesi:
 Il motore Flying Wheel esegue 18 controlli sequenziali prima di ogni ciclo di trading.  
 Tutti i check devono risultare `PASS` per procedere con un ordine reale.  
 I dettagli dei singoli controlli sono definiti in `src/flying_wheel/checks.py`.
+

@@ -9,5 +9,9 @@ services:
         sync: false
       - key: PIONEX_SECRET_KEY
         sync: false
+      - key: SILVER_SYMBOL
+        sync: false
+      - key: SILVER_BUY_AMOUNT_USDT
+        value: "10"
       - key: DRY_RUN
         value: "0"

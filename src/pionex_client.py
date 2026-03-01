@@ -37,16 +37,26 @@ class PionexClient:
             hashlib.sha256,
         ).hexdigest()
 
-    def _request(self, method: str, endpoint: str, params: dict | None = None):
+    def _auth_params(self) -> dict:
+        """Restituisce i parametri di autenticazione (timestamp, recvWindow, signature)."""
+        params = {
+            "timestamp": int(time.time() * 1000),
+            "recvWindow": 5000,  # finestra di validità in ms (5 s)
+        }
+        params["signature"] = self._sign(params)
+        return params
+
+    def _request(self, method: str, endpoint: str, params: dict | None = None,
+                 body: dict | None = None):
         """Effettua una richiesta autenticata all'API di Pionex.
+
+        Per le richieste GET i parametri vengono passati come query string.
+        Per le richieste POST i parametri di autenticazione vengono passati
+        come query string mentre il payload dell'ordine viene inviato nel body JSON.
 
         :return: dizionario JSON della risposta, o None in caso di errore.
         """
-        params = dict(params or {})
-        params["timestamp"] = int(time.time() * 1000)
-        params["recvWindow"] = 5000  # finestra di validità della richiesta in ms (5 s)
-        params["signature"] = self._sign(params)
-
+        auth = self._auth_params()
         headers = {
             "PIONEX-KEY": self.api_key,
             "Content-Type": "application/json",
@@ -55,9 +65,12 @@ class PionexClient:
 
         try:
             if method == "GET":
-                response = requests.get(url, params=params, headers=headers, timeout=10)
+                query = {**auth, **(params or {})}
+                response = requests.get(url, params=query, headers=headers, timeout=10)
             elif method == "POST":
-                response = requests.post(url, json=params, headers=headers, timeout=10)
+                response = requests.post(
+                    url, params=auth, json=body or {}, headers=headers, timeout=10
+                )
             else:
                 raise ValueError(f"Metodo HTTP non supportato: {method}")
             response.raise_for_status()
@@ -70,29 +83,51 @@ class PionexClient:
     # API pubbliche
     # ------------------------------------------------------------------
 
-    def get_ticker(self, symbol: str | None = None):
-        """Restituisce i dati di mercato (ticker).
+    def get_tickers(self, symbol: str | None = None) -> list[dict]:
+        """Restituisce la lista dei ticker di mercato.
 
-        :param symbol: es. 'PAXG_USDT'; se None, restituisce tutti i ticker.
+        :param symbol: es. 'XAG_USDT'; se None, restituisce tutti i ticker.
+        :return: lista di dizionari ticker, vuota in caso di errore.
         """
         params = {}
         if symbol:
             params["symbol"] = symbol
-        return self._request("GET", "/api/v1/market/tickers", params)
+        data = self._request("GET", "/api/v1/market/tickers", params)
+        if data is None:
+            return []
+        # La risposta ha la forma: {"result": true, "data": {"tickers": [...]}}
+        try:
+            return data["data"]["tickers"]
+        except (KeyError, TypeError):
+            logger.warning("Formato risposta ticker inatteso: %s", data)
+            return []
 
-    def create_order(self, symbol: str, side: str, order_type: str, quantity: float):
+    def create_order(
+        self,
+        symbol: str,
+        side: str,
+        order_type: str,
+        size: float | None = None,
+        amount: float | None = None,
+    ):
         """Crea un ordine su Pionex.
 
-        :param symbol:     coppia di trading, es. 'PAXG_USDT'
+        :param symbol:     coppia di trading, es. 'XAG_USDT'
         :param side:       'BUY' o 'SELL'
         :param order_type: 'MARKET' o 'LIMIT'
-        :param quantity:   quantità da acquistare/vendere
+        :param size:       quantità in valuta base (per SELL o BUY in base asset)
+        :param amount:     importo in valuta quotata, es. USDT (per BUY a importo fisso)
         """
-        return self._request(
-            "POST",
-            "/api/v1/trade/order",
-            {"symbol": symbol, "side": side, "type": order_type, "quantity": quantity},
-        )
+        if size is None and amount is None:
+            raise ValueError("È necessario specificare 'size' oppure 'amount'.")
+        if size is not None and amount is not None:
+            raise ValueError("Specificare 'size' oppure 'amount', non entrambi.")
+        payload: dict = {"symbol": symbol, "side": side, "type": order_type}
+        if amount is not None:
+            payload["amount"] = amount
+        if size is not None:
+            payload["size"] = size
+        return self._request("POST", "/api/v1/trade/order", body=payload)
 
     def test_connection(self) -> bool:
         """Verifica che le credenziali siano valide e l'API raggiungibile.
