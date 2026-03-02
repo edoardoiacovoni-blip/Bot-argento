@@ -15,3 +15,11 @@ services:
         sync: false
       - key: SILVER_BUY_AMOUNT_USDT
         value: "5"
+      - key: TOTAL_CAPITAL
+        value: "67.0"
+      - key: TRADE_MARGIN
+        value: "5.0"
+      - key: VOLATILE_TARGETS
+        value: "BTC_USDT,ETH_USDT,SOL_USDT"
+      - key: ENABLE_SILVER_ACCUMULATION
+        value: "1"

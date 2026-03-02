@@ -17,13 +17,28 @@ def check_01(ctx: dict) -> tuple[bool, str]:
 
 
 def check_02(ctx: dict) -> tuple[bool, str]:
-    """TODO: Verifica saldo USDT disponibile."""
-    return True, "check_02: placeholder PASS"
+    """Verifica saldo USDT disponibile >= trade_margin."""
+    usdt = ctx.get("usdt_balance", 0.0)
+    config = ctx.get("config", {})
+    trade_margin = config.get("trade_margin", 5.0)
+    if usdt >= trade_margin:
+        return True, f"check_02: saldo USDT {usdt:.2f} >= trade_margin {trade_margin:.2f} OK"
+    return False, f"check_02: saldo USDT {usdt:.2f} insufficiente (trade_margin={trade_margin:.2f})"
 
 
 def check_03(ctx: dict) -> tuple[bool, str]:
-    """TODO: Verifica saldo PAXG disponibile."""
-    return True, "check_03: placeholder PASS"
+    """Verifica saldo XAG (argento) disponibile."""
+    xag = ctx.get("xag_balance", 0.0)
+    xag_price = ctx.get("xag_price", 0.0)
+    xag_value = xag * xag_price
+    config = ctx.get("config", {})
+    min_reserve = config.get("min_usdt_reserve", 10.0)
+    if xag_value >= min_reserve:
+        return True, f"check_03: riserva argento {xag_value:.2f} USDT >= min_reserve {min_reserve:.2f} OK"
+    return (
+        False,
+        f"check_03: riserva argento {xag_value:.2f} USDT sotto min_reserve {min_reserve:.2f}",
+    )
 
 
 def check_04(ctx: dict) -> tuple[bool, str]:

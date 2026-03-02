@@ -79,12 +79,40 @@ def load_config() -> dict:
         logger.error("SILVER_BUY_AMOUNT_USDT non valido: %s", exc)
         sys.exit(1)
 
+    try:
+        total_capital = float(os.environ.get("TOTAL_CAPITAL", "67.0"))
+        if total_capital <= 0:
+            raise ValueError("deve essere > 0")
+    except ValueError as exc:
+        logger.error("TOTAL_CAPITAL non valido: %s", exc)
+        sys.exit(1)
+
+    try:
+        trade_margin = float(os.environ.get("TRADE_MARGIN", "5.0"))
+        if trade_margin <= 0:
+            raise ValueError("deve essere > 0")
+    except ValueError as exc:
+        logger.error("TRADE_MARGIN non valido: %s", exc)
+        sys.exit(1)
+
+    volatile_targets_raw = os.environ.get("VOLATILE_TARGETS", "BTC_USDT,ETH_USDT,SOL_USDT").strip()
+    volatile_targets = [t.strip() for t in volatile_targets_raw.split(",") if t.strip()]
+
+    enable_silver_accumulation = (
+        os.environ.get("ENABLE_SILVER_ACCUMULATION", "1").strip() not in ("0", "false", "False")
+    )
+
     return {
         "api_key": api_key,
         "secret_key": secret_key,
         "dry_run": dry_run,
         "silver_symbol": silver_symbol,
         "silver_buy_amount": silver_buy_amount,
+        "total_capital": total_capital,
+        "trade_margin": trade_margin,
+        "min_usdt_reserve": 10.0,
+        "volatile_targets": volatile_targets,
+        "enable_silver_accumulation": enable_silver_accumulation,
     }
 
 
@@ -123,6 +151,116 @@ def accumulate_silver(config: dict, client) -> None:
         logger.error("Errore nell'invio dell'ordine MARKET BUY per %s.", symbol)
 
 
+def get_real_balances(config: dict, client) -> tuple:
+    """Recupera i saldi reali USDT e XAG tramite API Pionex.
+
+    Punto 18: Verifica dello stato prima di operare.
+    :return: tupla (usdt_free, xag_held, xag_price)
+    """
+    balances = client.get_balance()
+    usdt_free = 0.0
+    xag_held = 0.0
+
+    for b in balances:
+        currency = b.get("currency", "")
+        free = float(b.get("free", 0) or 0)
+        if currency == "USDT":
+            usdt_free = free
+        elif currency in ("XAG", "SILVER"):
+            xag_held = free
+
+    # Recupera il prezzo attuale di XAG dal ticker
+    xag_price = 0.0
+    silver_symbol = config.get("silver_symbol", "")
+    if silver_symbol:
+        tickers = client.get_tickers()
+        for t in tickers:
+            if t.get("symbol") == silver_symbol:
+                try:
+                    xag_price = float(t.get("close", 0) or 0)
+                except (ValueError, TypeError):
+                    pass
+                break
+
+    return usdt_free, xag_held, xag_price
+
+
+def check_market_trend(client, asset: str) -> bool:
+    """Verifica se l'asset è in crescita prima del salto.
+
+    Punto 3: Usa la variazione di prezzo nelle ultime 24h come segnale.
+    :return: True se l'asset mostra trend positivo, False altrimenti.
+    """
+    tickers = client.get_tickers()
+    for t in tickers:
+        if t.get("symbol") == asset:
+            try:
+                change = float(t.get("change", 0) or 0)
+                return change > 0
+            except (ValueError, TypeError):
+                pass
+    return False
+
+
+def execute_rebalancing(
+    config: dict, client, amount_needed: float, xag_held: float, xag_price: float
+) -> bool:
+    """Vende XAG per ottenere liquidità USDT quando il saldo è insufficiente.
+
+    LOGICA DI REINVESTIMENTO: L'Argento diventa Moneta (Opzione B).
+    Punto 9: Se un sistema è lento o serve liquidità, cambiamo subito.
+    :return: True se il rebalancing è stato eseguito, False altrimenti.
+    """
+    min_reserve = config.get("min_usdt_reserve", 10.0)
+    valor_xag = xag_held * xag_price
+
+    if valor_xag <= min_reserve:
+        return False
+
+    if xag_price <= 0:
+        return False
+
+    amount_to_sell = (amount_needed / xag_price) * 1.01  # +1% buffer per le commissioni
+    silver_symbol = config.get("silver_symbol", "XAG_USDT")
+    logger.info(
+        "AZIONE BIP: Vendo %.4f XAG (%s) per finanziare il salto.",
+        amount_to_sell,
+        silver_symbol,
+    )
+
+    if config.get("dry_run"):
+        logger.info(
+            "DRY_RUN: vendita XAG simulata (%.4f %s).", amount_to_sell, silver_symbol
+        )
+        return True
+
+    result = client.create_order(silver_symbol, "SELL", "MARKET", quantity=amount_to_sell)
+    if result is not None:
+        logger.info("Ordine SELL XAG inviato: %s", result)
+        return True
+    logger.error("Errore nell'invio dell'ordine SELL XAG.")
+    return False
+
+
+def execute_micro_trade(config: dict, client, asset: str) -> None:
+    """Esegue un micro-trade sull'asset specificato (0.01 unità).
+
+    Punto 4: Micro-operazione di acquisto sull'opportunità identificata.
+    """
+    quantity = 0.01
+    if config.get("dry_run"):
+        logger.info(
+            "DRY_RUN: micro-trade simulato su %s (quantità: %.4f).", asset, quantity
+        )
+        return
+
+    result = client.create_order(asset, "BUY", "MARKET", quantity=quantity)
+    if result is not None:
+        logger.info("Micro-trade BUY eseguito su %s: %s", asset, result)
+    else:
+        logger.error("Errore nel micro-trade su %s.", asset)
+
+
 def main() -> None:
     config = load_config()
 
@@ -131,22 +269,60 @@ def main() -> None:
     else:
         logger.warning("Modalità REALE attiva — gli ordini verranno inviati a Pionex!")
 
-    ctx = {"config": config, "client": PionexClient(config["api_key"], config["secret_key"])}
+    client = PionexClient(config["api_key"], config["secret_key"])
+    ctx = {"config": config, "client": client}
 
     consecutive_errors = 0
     while True:
         try:
-            accumulate_silver(config, ctx["client"])
+            # Punto 18: Recupero saldi reali prima di ogni ciclo
+            usdt, xag, xag_price = get_real_balances(config, client)
+            total_equity = usdt + (xag * xag_price)
+            logger.info(
+                "Equity: %.2f USDT | Liquidità: %.2f | Argento: %.2f",
+                total_equity,
+                usdt,
+                xag * xag_price,
+            )
+            # Aggiorna il contesto con i saldi correnti per i check
+            ctx["usdt_balance"] = usdt
+            ctx["xag_balance"] = xag
+            ctx["xag_price"] = xag_price
 
+            # Accumulo argento (Punto 1) — controllato dal flag ENABLE_SILVER_ACCUMULATION
+            if config.get("enable_silver_accumulation"):
+                accumulate_silver(config, client)
+
+            # Gestione liquidità per il salto (Punti 8 e 9)
+            if usdt < config["trade_margin"]:
+                logger.warning("⚠️ USDT insufficienti per il salto. Controllo riserve Argento...")
+                needed = config["trade_margin"] - usdt
+                if not execute_rebalancing(config, client, needed, xag, xag_price):
+                    logger.error("❌ Riserve Argento insufficienti. Attendo prossimo ciclo.")
+                    time.sleep(CYCLE_SLEEP_SECONDS)
+                    consecutive_errors = 0
+                    continue
+                usdt = config["trade_margin"]
+
+            # Flying Wheel Engine: 18 controlli sequenziali
             all_passed = engine.run(ctx)
 
             if not all_passed:
                 logger.warning("Flying Wheel non completato: operazione annullata.")
-            elif config["dry_run"]:
-                logger.info("DRY_RUN: operazione simulata completata con successo.")
             else:
-                logger.info("Tutti i check superati — avvio esecuzione ordine reale.")
-                # TODO: integrare le chiamate API Pionex per l'ordine effettivo
+                # Scansione opportunità sui target volatili (Punti 2, 3 e 17)
+                for target in config["volatile_targets"]:
+                    if check_market_trend(client, target):
+                        logger.info(
+                            "🚀 SALTO: Trend positivo su %s. Eseguo micro-trade.", target
+                        )
+                        execute_micro_trade(config, client, target)
+                        break
+
+                if config["dry_run"]:
+                    logger.info("DRY_RUN: operazione simulata completata con successo.")
+                else:
+                    logger.info("Tutti i check superati — esecuzione completata.")
 
             consecutive_errors = 0
             logger.info("Prossimo ciclo tra %d secondi.", CYCLE_SLEEP_SECONDS)
