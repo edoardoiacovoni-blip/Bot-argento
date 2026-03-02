@@ -66,11 +66,13 @@ Bot-argento/
 
 ## Variabili d'Ambiente
 
-| Variabile          | Obbligatoria | Descrizione                                  |
-|--------------------|:------------:|----------------------------------------------|
-| `PIONEX_API_KEY`   | ✅            | API Key ottenuta dal pannello Pionex          |
-| `PIONEX_SECRET_KEY`| ✅            | Secret Key ottenuta dal pannello Pionex       |
-| `DRY_RUN`          | ❌            | Se `1` (default), nessun ordine reale viene eseguito; se `0`, gli ordini vengono eseguiti realmente |
+| Variabile                  | Obbligatoria | Descrizione                                                                       |
+|----------------------------|:------------:|-----------------------------------------------------------------------------------|
+| `PIONEX_API_KEY`           | ✅            | API Key ottenuta dal pannello Pionex                                               |
+| `PIONEX_SECRET_KEY`        | ✅            | Secret Key ottenuta dal pannello Pionex                                            |
+| `DRY_RUN`                  | ❌            | `1` (default) = simula, nessun ordine reale; `0` = trading reale                 |
+| `SILVER_SYMBOL`            | ✅            | Simbolo argento SPOT su Pionex, es. `XAG_USDT` (configurare via Render dashboard) |
+| `SILVER_BUY_AMOUNT_USDT`   | ❌            | Importo USDT da spendere per ogni acquisto di argento (default: `5`)              |
 
 ## Come Eseguire in Locale
 
