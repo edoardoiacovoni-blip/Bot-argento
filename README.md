@@ -8,17 +8,17 @@ Bot Argento esegue un'analisi strutturata in 18 controlli prima di effettuare op
 
 ## ⚙️ Come Funziona
 
-### Il Sistema Flying Wheel
+### Il Sistema Flying Wheel (Fusione 18 Punti)
 
 Il bot implementa un sistema di trading automatico chiamato **"Flying Wheel"** che opera tramite il motore a 18 controlli su Pionex:
 
 ```
 Loop principale
-├── 1. Controlla segnali istituzionali
-├── 2. Recupera dati di mercato (ticker)
-├── 3. Analisi 18 punti → identifica opportunità (variazione > 1.8%)
-├── 4. Esegue micro-operazioni di acquisto (0.01 unità)
-└── 5. Converte i profitti in PAXG (oro fisico)
+├── 1. Recupera saldi reali: USDT, XAG (argento) e prezzo XAG (Punto 18)
+├── 2. Se USDT < TRADE_MARGIN → vende XAG per finanziare il salto (Punti 8 & 9)
+├── 3. Accumula argento tramite SPOT BUY (Punto 1, se ENABLE_SILVER_ACCUMULATION=1)
+├── 4. Esegue il motore Flying Wheel a 18 controlli
+└── 5. Se tutti i check passano → scansione trend sui VOLATILE_TARGETS → micro-trade (Punti 2, 3 & 17)
 ```
 
 ### Analisi 18 Punti (`src/flying_wheel/engine.py`)
@@ -66,13 +66,19 @@ Bot-argento/
 
 ## Variabili d'Ambiente
 
-| Variabile                  | Obbligatoria | Descrizione                                                                       |
-|----------------------------|:------------:|-----------------------------------------------------------------------------------|
-| `PIONEX_API_KEY`           | ✅            | API Key ottenuta dal pannello Pionex                                               |
-| `PIONEX_SECRET_KEY`        | ✅            | Secret Key ottenuta dal pannello Pionex                                            |
-| `DRY_RUN`                  | ❌            | `1` (default) = simula, nessun ordine reale; `0` = trading reale                 |
-| `SILVER_SYMBOL`            | ✅            | Simbolo argento SPOT su Pionex, es. `XAG_USDT` (configurare via Render dashboard) |
-| `SILVER_BUY_AMOUNT_USDT`   | ❌            | Importo USDT da spendere per ogni acquisto di argento (default: `5`)              |
+| Variabile                    | Obbligatoria | Descrizione                                                                              |
+|------------------------------|:------------:|------------------------------------------------------------------------------------------|
+| `PIONEX_API_KEY`             | ✅            | API Key ottenuta dal pannello Pionex                                                      |
+| `PIONEX_SECRET_KEY`          | ✅            | Secret Key ottenuta dal pannello Pionex                                                   |
+| `DRY_RUN`                    | ❌            | `1` (default) = simula, nessun ordine reale; `0` = trading reale                        |
+| `SILVER_SYMBOL`              | ✅            | Simbolo argento SPOT su Pionex, es. `XAG_USDT` (configurare via Render dashboard)        |
+| `SILVER_BUY_AMOUNT_USDT`     | ❌            | Importo USDT da spendere per ogni acquisto di argento (default: `5`)                     |
+| `TOTAL_CAPITAL`              | ❌            | Capitale totale gestito in USDT (default: `67.0`)                                        |
+| `TRADE_MARGIN`               | ❌            | Soglia minima USDT per eseguire un salto; se inferiore si attiva il rebalancing (default: `5.0`) |
+| `MIN_USDT_RESERVE`           | ❌            | Valore XAG minimo (in USDT) sotto il quale non si vende argento per rebalancing (default: `10.0`) |
+| `ENABLE_SILVER_ACCUMULATION` | ❌            | `1` (default) = accumula argento ogni ciclo; `0` = disabilita accumulo automatico       |
+| `VOLATILE_TARGETS`           | ❌            | Target volatili separati da virgola per i "salti" (default: `BTC_USDT,ETH_USDT,SOL_USDT`) |
+| `MICRO_TRADE_QUANTITY`       | ❌            | Quantità base da acquistare per ogni micro-trade (default: `0.01` unità)                  |
 
 ## Come Eseguire in Locale
 
