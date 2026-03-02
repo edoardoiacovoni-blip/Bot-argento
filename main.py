@@ -14,7 +14,7 @@ Flusso principale:
       variazione di prezzo > 1.8%.
    d. Esegue micro-operazioni di acquisto (0.01 unità) sulle opportunità.
    e. Converte i profitti in PAXG (PAX Gold, token ancorato all'oro fisico)
-      tramite ordini MARKET su PAXGUSD.
+      tramite ordini MARKET su PAXG_USDT.
 4. In caso di errori transitori, riprova automaticamente dopo un breve ritardo.
 
 Variabili d'ambiente richieste:
@@ -47,6 +47,12 @@ logger = logging.getLogger(__name__)
 CYCLE_SLEEP_SECONDS = 60
 # Massimo ritardo (secondi) per il backoff esponenziale in caso di errori
 MAX_BACKOFF_SECONDS = 300
+
+# Parametri della procedura Cime
+MICRO_TRADE_QUANTITY = 0.01       # unità base per ogni micro-acquisto
+PRICE_CHANGE_THRESHOLD = 1.8     # soglia variazione % per identificare opportunità
+PAXG_SYMBOL = "PAXG_USDT"       # simbolo PAXG per la conversione in oro
+TOP_OPPORTUNITIES = 5            # numero massimo di asset da tradare per ciclo
 
 
 def load_config() -> dict:
@@ -123,6 +129,67 @@ def accumulate_silver(config: dict, client) -> None:
         logger.error("Errore nell'invio dell'ordine MARKET BUY per %s.", symbol)
 
 
+def find_opportunities(tickers: list) -> list:
+    """Identifica i top asset con variazione di prezzo > PRICE_CHANGE_THRESHOLD%.
+
+    :param tickers: lista di dizionari ticker restituita da get_tickers().
+    :return: lista di simboli ordinata per variazione decrescente (max TOP_OPPORTUNITIES).
+    """
+    opportunities = []
+    for ticker in tickers:
+        if not isinstance(ticker, dict):
+            continue
+        symbol = ticker.get("symbol")
+        if not symbol:
+            continue
+        try:
+            change = float(ticker.get("change", 0))
+        except (TypeError, ValueError):
+            continue
+        if change > PRICE_CHANGE_THRESHOLD:
+            opportunities.append((symbol, change))
+    opportunities.sort(key=lambda x: x[1], reverse=True)
+    return [sym for sym, _ in opportunities[:TOP_OPPORTUNITIES]]
+
+
+def execute_micro_trade(client, symbol: str, dry_run: bool) -> None:
+    """Esegue una micro-operazione di acquisto (MICRO_TRADE_QUANTITY unità) per il simbolo indicato.
+
+    In DRY_RUN=1 registra l'azione prevista senza inviare alcun ordine reale.
+    """
+    if dry_run:
+        logger.info(
+            "DRY_RUN: micro-acquisto simulato per %s (quantity=%.2f)",
+            symbol,
+            MICRO_TRADE_QUANTITY,
+        )
+        return
+    result = client.create_order(symbol, "BUY", "MARKET", quantity=MICRO_TRADE_QUANTITY)
+    if result is not None:
+        logger.info("Micro-acquisto inviato per %s: %s", symbol, result)
+    else:
+        logger.error("Errore nel micro-acquisto per %s.", symbol)
+
+
+def convert_to_gold(client, dry_run: bool) -> None:
+    """Converte i profitti in PAXG tramite ordine MARKET su PAXG_USDT.
+
+    In DRY_RUN=1 registra l'azione prevista senza inviare alcun ordine reale.
+    """
+    if dry_run:
+        logger.info(
+            "DRY_RUN: conversione in PAXG simulata (%s MARKET BUY quantity=%.2f)",
+            PAXG_SYMBOL,
+            MICRO_TRADE_QUANTITY,
+        )
+        return
+    result = client.create_order(PAXG_SYMBOL, "BUY", "MARKET", quantity=MICRO_TRADE_QUANTITY)
+    if result is not None:
+        logger.info("Conversione in PAXG inviata: %s", result)
+    else:
+        logger.error("Errore nella conversione in PAXG.")
+
+
 def main() -> None:
     config = load_config()
 
@@ -142,11 +209,23 @@ def main() -> None:
 
             if not all_passed:
                 logger.warning("Flying Wheel non completato: operazione annullata.")
-            elif config["dry_run"]:
-                logger.info("DRY_RUN: operazione simulata completata con successo.")
             else:
-                logger.info("Tutti i check superati — avvio esecuzione ordine reale.")
-                # TODO: integrare le chiamate API Pionex per l'ordine effettivo
+                tickers = ctx["client"].get_tickers()
+                opportunities = find_opportunities(tickers)
+                if opportunities:
+                    logger.info("Opportunità identificate: %s", opportunities)
+                    for sym in opportunities:
+                        execute_micro_trade(ctx["client"], sym, config["dry_run"])
+                    convert_to_gold(ctx["client"], config["dry_run"])
+                else:
+                    logger.info(
+                        "Nessuna opportunità trovata (variazione < %.1f%%).",
+                        PRICE_CHANGE_THRESHOLD,
+                    )
+                if config["dry_run"]:
+                    logger.info("DRY_RUN: operazione simulata completata con successo.")
+                else:
+                    logger.info("Tutti i check superati — esecuzione ordini completata.")
 
             consecutive_errors = 0
             logger.info("Prossimo ciclo tra %d secondi.", CYCLE_SLEEP_SECONDS)
