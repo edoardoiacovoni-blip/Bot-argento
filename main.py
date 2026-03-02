@@ -47,6 +47,14 @@ logger = logging.getLogger(__name__)
 CYCLE_SLEEP_SECONDS = 60
 # Massimo ritardo (secondi) per il backoff esponenziale in caso di errori
 MAX_BACKOFF_SECONDS = 300
+# Quantità fissa acquistata in ogni micro-operazione (base asset)
+MICRO_TRADE_QUANTITY = 0.01
+# Simbolo PAXG su Pionex
+PAXG_SYMBOL = "PAXG_USDT"
+# Importo USDT da investire in PAXG per ogni conversione in oro
+PAXG_BUY_AMOUNT_USDT = 1.0
+# Soglia minima di variazione percentuale per identificare un'opportunità
+OPPORTUNITY_THRESHOLD = 0.018
 
 
 def load_config() -> dict:
@@ -123,6 +131,78 @@ def accumulate_silver(config: dict, client) -> None:
         logger.error("Errore nell'invio dell'ordine MARKET BUY per %s.", symbol)
 
 
+def find_opportunities(tickers: list, threshold: float = OPPORTUNITY_THRESHOLD, top_n: int = 5) -> list:
+    """Identifica le migliori opportunità di trading dai ticker di mercato.
+
+    Seleziona gli asset con variazione di prezzo positiva superiore alla soglia,
+    ordinati per variazione decrescente.
+
+    :param tickers:   lista di dizionari ticker restituita da PionexClient.get_tickers()
+    :param threshold: soglia minima di variazione (default OPPORTUNITY_THRESHOLD)
+    :param top_n:     numero massimo di asset da restituire (default 5)
+    :return:          lista di dict {"symbol": str, "change": float}
+    """
+    candidates = []
+    for ticker in tickers:
+        if not isinstance(ticker, dict):
+            continue
+        symbol = ticker.get("symbol")
+        if not symbol:
+            continue
+        try:
+            close = float(ticker.get("close") or 0)
+            open_ = float(ticker.get("open") or 0)
+            if open_ <= 0 or close <= 0:
+                continue
+            change = (close - open_) / open_
+            if change > threshold:
+                candidates.append({"symbol": symbol, "change": change})
+        except (TypeError, ValueError):
+            continue
+    candidates.sort(key=lambda x: x["change"], reverse=True)
+    return candidates[:top_n]
+
+
+def execute_micro_trade(config: dict, client, symbol: str) -> None:
+    """Esegue una micro-operazione di acquisto (0.01 unità) su un asset.
+
+    In DRY_RUN simula l'acquisto senza inviare ordini reali.
+    """
+    if config["dry_run"]:
+        logger.info(
+            "DRY_RUN: micro-trade simulato per %s (quantity=%.2f)",
+            symbol,
+            MICRO_TRADE_QUANTITY,
+        )
+        return
+
+    result = client.create_order(symbol, "BUY", "MARKET", quantity=MICRO_TRADE_QUANTITY)
+    if result is not None:
+        logger.info("Micro-trade eseguito per %s: %s", symbol, result)
+    else:
+        logger.error("Errore nell'esecuzione del micro-trade per %s.", symbol)
+
+
+def convert_to_gold(config: dict, client) -> None:
+    """Converte i profitti accumulati in PAXG (oro fisico) tramite ordine MARKET.
+
+    In DRY_RUN simula la conversione senza inviare ordini reali.
+    """
+    if config["dry_run"]:
+        logger.info(
+            "DRY_RUN: conversione in PAXG simulata (symbol=%s, amount=%.4f USDT)",
+            PAXG_SYMBOL,
+            PAXG_BUY_AMOUNT_USDT,
+        )
+        return
+
+    result = client.create_order(PAXG_SYMBOL, "BUY", "MARKET", amount=PAXG_BUY_AMOUNT_USDT)
+    if result is not None:
+        logger.info("Conversione in PAXG eseguita: %s", result)
+    else:
+        logger.error("Errore nella conversione in PAXG.")
+
+
 def main() -> None:
     config = load_config()
 
@@ -142,11 +222,28 @@ def main() -> None:
 
             if not all_passed:
                 logger.warning("Flying Wheel non completato: operazione annullata.")
-            elif config["dry_run"]:
-                logger.info("DRY_RUN: operazione simulata completata con successo.")
             else:
-                logger.info("Tutti i check superati — avvio esecuzione ordine reale.")
-                # TODO: integrare le chiamate API Pionex per l'ordine effettivo
+                tickers = ctx["client"].get_tickers()
+                if not tickers:
+                    logger.warning("Nessun ticker ricevuto dall'API — salto la ricerca di opportunità.")
+                else:
+                    opportunities = find_opportunities(tickers)
+                    if opportunities:
+                        logger.info(
+                            "%sTrovate %d opportunità: %s",
+                            "DRY_RUN: " if config["dry_run"] else "",
+                            len(opportunities),
+                            [o["symbol"] for o in opportunities],
+                        )
+                        for opp in opportunities:
+                            execute_micro_trade(config, ctx["client"], opp["symbol"])
+                        convert_to_gold(config, ctx["client"])
+                    else:
+                        logger.info(
+                            "%sNessuna opportunità trovata (variazione < %.1f%% su tutti i ticker).",
+                            "DRY_RUN: " if config["dry_run"] else "",
+                            OPPORTUNITY_THRESHOLD * 100,
+                        )
 
             consecutive_errors = 0
             logger.info("Prossimo ciclo tra %d secondi.", CYCLE_SLEEP_SECONDS)
