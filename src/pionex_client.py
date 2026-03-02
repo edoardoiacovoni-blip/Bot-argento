@@ -3,6 +3,7 @@ Client per le API di Pionex.
 
 Gestisce l'autenticazione HMAC-SHA256 e le chiamate HTTP
 all'API di Pionex per dati di mercato e ordini.
+Include il tracciamento delle statistiche sulle richieste API.
 """
 import hashlib
 import hmac
@@ -23,6 +24,28 @@ class PionexClient:
     def __init__(self, api_key: str, secret_key: str) -> None:
         self.api_key = api_key
         self.secret_key = secret_key
+        self._stats: dict = {
+            "total": 0,
+            "success": 0,
+            "failure": 0,
+            "total_latency_ms": 0.0,
+        }
+
+    def get_request_stats(self) -> dict:
+        """Restituisce le statistiche aggregate sulle richieste API effettuate.
+
+        :return: dizionario con conteggi totale/successo/errore e latenza media (ms).
+        """
+        total = self._stats["total"]
+        avg_latency = (
+            self._stats["total_latency_ms"] / total if total > 0 else 0.0
+        )
+        return {
+            "total": total,
+            "success": self._stats["success"],
+            "failure": self._stats["failure"],
+            "avg_latency_ms": round(avg_latency, 2),
+        }
 
     # ------------------------------------------------------------------
     # Helpers interni
@@ -55,6 +78,7 @@ class PionexClient:
         }
         url = f"{self.BASE_URL}{endpoint}"
 
+        t_start = time.monotonic()
         try:
             if method == "GET":
                 # Firma tutti i parametri GET nella query string
@@ -72,8 +96,16 @@ class PionexClient:
             else:
                 raise ValueError(f"Metodo HTTP non supportato: {method}")
             response.raise_for_status()
+            elapsed_ms = (time.monotonic() - t_start) * 1000
+            self._stats["total"] += 1
+            self._stats["success"] += 1
+            self._stats["total_latency_ms"] += elapsed_ms
             return response.json()
         except requests.exceptions.RequestException as exc:
+            elapsed_ms = (time.monotonic() - t_start) * 1000
+            self._stats["total"] += 1
+            self._stats["failure"] += 1
+            self._stats["total_latency_ms"] += elapsed_ms
             logger.error("Errore richiesta API Pionex [%s %s]: %s", method, endpoint, exc)
             return None  # il chiamante gestisce il None
 

@@ -149,6 +149,14 @@ def main() -> None:
                 # TODO: integrare le chiamate API Pionex per l'ordine effettivo
 
             consecutive_errors = 0
+            stats = ctx["client"].get_request_stats()
+            logger.info(
+                "Statistiche richieste API: totale=%d, successi=%d, errori=%d, latenza_media=%.1f ms",
+                stats["total"],
+                stats["success"],
+                stats["failure"],
+                stats["avg_latency_ms"],
+            )
             logger.info("Prossimo ciclo tra %d secondi.", CYCLE_SLEEP_SECONDS)
             time.sleep(CYCLE_SLEEP_SECONDS)
 
