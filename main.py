@@ -22,6 +22,7 @@ Variabili d'ambiente richieste:
 import logging
 import os
 import sys
+import time
 
 try:
     from dotenv import load_dotenv
@@ -37,6 +38,11 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+# Secondi di pausa tra un ciclo completo e il successivo
+CYCLE_SLEEP_SECONDS = 60
+# Massimo ritardo (secondi) per il backoff esponenziale in caso di errori
+MAX_BACKOFF_SECONDS = 300
 
 
 def load_config() -> dict:
@@ -72,17 +78,34 @@ def main() -> None:
         logger.warning("Modalità REALE attiva — gli ordini verranno inviati a Pionex!")
 
     ctx = {"config": config, "client": PionexClient(config["api_key"], config["secret_key"])}
-    all_passed = engine.run(ctx)
 
-    if not all_passed:
-        logger.warning("Flying Wheel non completato: operazione annullata.")
-        return
+    consecutive_errors = 0
+    while True:
+        try:
+            all_passed = engine.run(ctx)
 
-    if config["dry_run"]:
-        logger.info("DRY_RUN: operazione simulata completata con successo.")
-    else:
-        logger.info("Tutti i check superati — avvio esecuzione ordine reale.")
-        # TODO: integrare le chiamate API Pionex per l'ordine effettivo
+            if not all_passed:
+                logger.warning("Flying Wheel non completato: operazione annullata.")
+            elif config["dry_run"]:
+                logger.info("DRY_RUN: operazione simulata completata con successo.")
+            else:
+                logger.info("Tutti i check superati — avvio esecuzione ordine reale.")
+                # TODO: integrare le chiamate API Pionex per l'ordine effettivo
+
+            consecutive_errors = 0
+            logger.info("Prossimo ciclo tra %d secondi.", CYCLE_SLEEP_SECONDS)
+            time.sleep(CYCLE_SLEEP_SECONDS)
+
+        except Exception as exc:
+            consecutive_errors += 1
+            wait = min(2 ** min(consecutive_errors, 10), MAX_BACKOFF_SECONDS)
+            logger.error(
+                "Errore imprevisto (ciclo #%d): %s — riprovo tra %d secondi.",
+                consecutive_errors,
+                exc,
+                wait,
+            )
+            time.sleep(wait)
 
 
 if __name__ == "__main__":
