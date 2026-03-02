@@ -11,3 +11,7 @@ services:
         sync: false
       - key: DRY_RUN
         value: "1"
+      - key: SILVER_SYMBOL
+        sync: false
+      - key: SILVER_BUY_AMOUNT_USDT
+        value: "5"

@@ -91,19 +91,44 @@ class PionexClient:
             params["symbol"] = symbol
         return self._request("GET", "/api/v1/market/tickers", params)
 
-    def create_order(self, symbol: str, side: str, order_type: str, quantity: float):
+    def get_tickers(self) -> list:
+        """Restituisce la lista di tutti i ticker di mercato.
+
+        :return: lista di dizionari ticker, oppure [] in caso di errore o forma inattesa.
+        """
+        result = self._request("GET", "/api/v1/market/tickers", {})
+        try:
+            tickers = result.get("data", {}).get("tickers", [])
+            if isinstance(tickers, list):
+                return tickers
+        except (AttributeError, TypeError):
+            pass
+        logger.warning("Risposta ticker inattesa: %s", result)
+        return []
+
+    def create_order(
+        self,
+        symbol: str,
+        side: str,
+        order_type: str,
+        quantity: float | None = None,
+        amount: float | None = None,
+    ):
         """Crea un ordine su Pionex.
 
         :param symbol:     coppia di trading, es. 'PAXG_USDT'
         :param side:       'BUY' o 'SELL'
         :param order_type: 'MARKET' o 'LIMIT'
-        :param quantity:   quantità da acquistare/vendere
+        :param quantity:   quantità base da acquistare/vendere (base asset)
+        :param amount:     importo in valuta di quotazione da spendere (es. USDT)
+                           per acquisti MARKET basati sulla quota; alternativo a quantity.
         """
-        return self._request(
-            "POST",
-            "/api/v1/trade/order",
-            {"symbol": symbol, "side": side, "type": order_type, "quantity": quantity},
-        )
+        payload: dict = {"symbol": symbol, "side": side, "type": order_type}
+        if amount is not None:
+            payload["amount"] = amount
+        elif quantity is not None:
+            payload["quantity"] = quantity
+        return self._request("POST", "/api/v1/trade/order", payload)
 
     def test_connection(self) -> bool:
         """Verifica che le credenziali siano valide e l'API raggiungibile.
