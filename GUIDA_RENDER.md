@@ -51,11 +51,12 @@ Nella sezione "Environment Variables", aggiungi:
 
 1. PIONEX_API_KEY  = [la tua API key di Pionex]
 2. PIONEX_SECRET_KEY = [il tuo Secret key di Pionex]
+3. SILVER_SYMBOL = [simbolo argento SPOT, es. XAG_USDT]
 
 Per il trading reale imposta anche:
-3. DRY_RUN = 0   (default: 1 = modalità sicura, nessun ordine reale)
+4. DRY_RUN = 0   (default: 1 = modalità sicura, nessun ordine reale)
 
-⚠️ SENZA le API key il bot si fermerà con un errore chiaro nei log.
+⚠️ SENZA le API key e SILVER_SYMBOL il bot si fermerà con un errore chiaro nei log.
 ```
 
 ### Passaggio 5: Deploy
