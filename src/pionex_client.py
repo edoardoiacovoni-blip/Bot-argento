@@ -130,6 +130,21 @@ class PionexClient:
             payload["quantity"] = quantity
         return self._request("POST", "/api/v1/trade/order", payload)
 
+    def get_account_balance(self) -> list:
+        """Restituisce i saldi del conto.
+
+        :return: lista di dizionari con i saldi, oppure [] in caso di errore.
+        """
+        result = self._request("GET", "/api/v1/account/balances", {})
+        try:
+            balances = result.get("data", {}).get("balances", [])
+            if isinstance(balances, list):
+                return balances
+        except (AttributeError, TypeError):
+            pass
+        logger.warning("Risposta saldi inattesa: %s", result)
+        return []
+
     def test_connection(self) -> bool:
         """Verifica che le credenziali siano valide e l'API raggiungibile.
 

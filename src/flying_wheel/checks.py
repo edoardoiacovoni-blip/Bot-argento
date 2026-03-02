@@ -17,18 +17,35 @@ def check_01(ctx: dict) -> tuple[bool, str]:
 
 
 def check_02(ctx: dict) -> tuple[bool, str]:
-    """TODO: Verifica saldo USDT disponibile."""
-    return True, "check_02: placeholder PASS"
+    """Verifica saldo USDT disponibile (Punto 8: l'argento è capitale operativo)."""
+    usdt = ctx.get("usdt")
+    if usdt is None:
+        return True, "check_02: saldo USDT non presente nel contesto (skip)"
+    config = ctx.get("config", {})
+    trade_margin = config.get("trade_margin", 5.0)
+    if usdt >= trade_margin:
+        return True, f"check_02: saldo USDT sufficiente ({usdt:.2f} >= {trade_margin:.2f} USDT)"
+    return False, f"check_02: saldo USDT insufficiente ({usdt:.2f} < {trade_margin:.2f} USDT)"
 
 
 def check_03(ctx: dict) -> tuple[bool, str]:
-    """TODO: Verifica saldo PAXG disponibile."""
-    return True, "check_03: placeholder PASS"
+    """Verifica saldo XAG (argento) disponibile come riserva."""
+    xag = ctx.get("xag")
+    if xag is None:
+        return True, "check_03: saldo XAG non presente nel contesto (skip)"
+    if xag > 0:
+        return True, f"check_03: saldo XAG presente ({xag:.4f} XAG)"
+    return False, f"check_03: saldo XAG azzerato ({xag:.4f} XAG)"
 
 
 def check_04(ctx: dict) -> tuple[bool, str]:
-    """TODO: Recupera prezzo corrente PAXG/USDT."""
-    return True, "check_04: placeholder PASS"
+    """Recupera e verifica il prezzo corrente XAG/USDT."""
+    xag_price = ctx.get("xag_price")
+    if xag_price is None:
+        return True, "check_04: prezzo XAG non presente nel contesto (skip)"
+    if xag_price > 0:
+        return True, f"check_04: prezzo XAG valido ({xag_price:.2f} USDT)"
+    return False, f"check_04: prezzo XAG non valido ({xag_price})"
 
 
 def check_05(ctx: dict) -> tuple[bool, str]:
