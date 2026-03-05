@@ -10,7 +10,7 @@ services:
       - key: PIONEX_SECRET_KEY
         sync: false
       - key: DRY_RUN
-        value: "0"
+        value: "1"
       - key: SYMBOL
         value: "XAG_USDT"
       - key: TIMEFRAME

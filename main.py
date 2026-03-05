@@ -124,14 +124,36 @@ def _execute_order(client: PionexClient, plan: dict, config: dict) -> bool:
         order_type="MARKET",
         quantity=plan["qty"],
     )
-    if result is not None and result.get("result") is not False:
+    # Valida esplicitamente il criterio di successo atteso:
+    # - payload deve essere un dict
+    # - campo "result" deve essere True
+    # - deve essere presente almeno uno tra "orderId" e "data"
+    is_success = (
+        isinstance(result, dict)
+        and result.get("result") is True
+        and ("orderId" in result or "data" in result)
+    )
+    if is_success:
         logger.info(
             "ORDINE ESEGUITO: %s %s qty=%s entry≈%s sl=%s tp=%s R:R=%s",
             plan["side"], symbol, plan["qty"],
             plan["entry"], plan["sl"], plan["tp"], plan["rr"],
         )
         return True
-    logger.error("Ordine fallito o risposta inattesa: %s", result)
+
+    # Logga con più dettagli quando il payload non è quello previsto
+    if not isinstance(result, dict):
+        logger.error(
+            "Ordine fallito: risposta inattesa dal client (tipo=%s, valore=%r)",
+            type(result).__name__,
+            result,
+        )
+    else:
+        logger.error(
+            "Ordine fallito o payload non valido: result=%r, keys=%s",
+            result.get("result"),
+            list(result.keys()),
+        )
     return False
 
 

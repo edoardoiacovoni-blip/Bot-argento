@@ -45,7 +45,7 @@ def check_01(ctx: dict) -> tuple[bool, str]:
 def check_02(ctx: dict) -> tuple[bool, str]:
     """Break of Structure rialzista: ultimo high > swing high delle N barre precedenti."""
     df = ctx.get("df")
-    if df is None or len(df) < 10:
+    if df is None or len(df) < 11:
         return False, "check_02: dati insufficienti per BOS"
     current_high = float(df.iloc[-1]["high"])
     prev_swing_high = float(df.iloc[-11:-1]["high"].max())
