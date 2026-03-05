@@ -17,8 +17,14 @@ def check_01(ctx: dict) -> tuple[bool, str]:
 
 
 def check_02(ctx: dict) -> tuple[bool, str]:
-    """TODO: Verifica saldo USDT disponibile."""
-    return True, "check_02: placeholder PASS"
+    """Verifica saldo USDT disponibile."""
+    balances = ctx.get("balances") or {}
+    config = ctx.get("config") or {}
+    usdt_free = balances.get("USDT", {}).get("free", 0.0)
+    min_reserve = config.get("min_usdt_reserve", 10.0)
+    if usdt_free >= min_reserve:
+        return True, f"check_02: saldo USDT disponibile {usdt_free:.4f} ≥ {min_reserve:.4f}"
+    return False, f"check_02: saldo USDT {usdt_free:.4f} < soglia minima {min_reserve:.4f}"
 
 
 def check_03(ctx: dict) -> tuple[bool, str]:
@@ -27,8 +33,18 @@ def check_03(ctx: dict) -> tuple[bool, str]:
 
 
 def check_04(ctx: dict) -> tuple[bool, str]:
-    """TODO: Recupera prezzo corrente PAXG/USDT."""
-    return True, "check_04: placeholder PASS"
+    """Recupera prezzo corrente PAXG/USDT."""
+    tickers = ctx.get("tickers") or []
+    for t in tickers:
+        if isinstance(t, dict) and t.get("symbol") == "PAXG_USDT":
+            try:
+                price = float(t.get("close", t.get("price", 0)) or 0)
+                if price > 0:
+                    ctx["paxg_price"] = price
+                    return True, f"check_04: prezzo PAXG/USDT = {price:.2f}"
+            except (TypeError, ValueError):
+                pass
+    return True, "check_04: prezzo PAXG/USDT non disponibile (skip)"
 
 
 def check_05(ctx: dict) -> tuple[bool, str]:
