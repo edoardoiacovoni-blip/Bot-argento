@@ -57,6 +57,15 @@ CYCLE_SLEEP_SECONDS = 60
 # Massimo ritardo (secondi) per il backoff esponenziale in caso di errori
 MAX_BACKOFF_SECONDS = 300
 
+# Simbolo PAXG su Pionex
+PAXG_SYMBOL = "PAXG_USDT"
+# Quantità fissa per le micro-operazioni di acquisto (unità base)
+MICRO_TRADE_QUANTITY = 0.01
+# Soglia minima di variazione percentuale per identificare un'opportunità
+PRICE_CHANGE_THRESHOLD = 1.8
+# Numero massimo di opportunità su cui agire per ciclo
+MAX_OPPORTUNITIES = 5
+
 
 def load_config() -> dict:
     """Carica e valida la configurazione da variabili d'ambiente."""
@@ -341,6 +350,104 @@ def execute_rebalancing_under_10(config: dict, client, balances: dict) -> dict:
     return balances
 
 
+def get_opportunities(tickers: list, threshold: float = PRICE_CHANGE_THRESHOLD) -> list:
+    """Identifica le opportunità di trading con variazione di prezzo > threshold%.
+
+    Scansiona i ticker Pionex, calcola la variazione percentuale (close vs open)
+    e restituisce al massimo MAX_OPPORTUNITIES simboli USDT ordinati per variazione
+    decrescente.
+
+    :param tickers:   lista di ticker restituita da PionexClient.get_tickers().
+    :param threshold: soglia di variazione percentuale (default PRICE_CHANGE_THRESHOLD).
+    :return: lista di simboli (es. ['BTC_USDT', 'ETH_USDT', ...]).
+    """
+    candidates: list[tuple[str, float]] = []
+    for t in tickers:
+        if not isinstance(t, dict):
+            continue
+        symbol = t.get("symbol", "")
+        if not symbol.endswith("_USDT"):
+            continue
+        try:
+            close = float(t.get("close", 0) or 0)
+            open_price = float(t.get("open", 0) or 0)
+            if open_price <= 0 or close <= 0:
+                continue
+            change_pct = (close - open_price) / open_price * 100
+            if change_pct > threshold:
+                candidates.append((symbol, change_pct))
+        except (TypeError, ValueError):
+            continue
+
+    candidates.sort(key=lambda x: x[1], reverse=True)
+    top = [sym for sym, _ in candidates[:MAX_OPPORTUNITIES]]
+    if top:
+        logger.info(
+            "Opportunità rilevate (variazione > %.1f%%): %s",
+            threshold,
+            ", ".join(top),
+        )
+    else:
+        logger.info("Nessuna opportunità rilevata (variazione > %.1f%%).", threshold)
+    return top
+
+
+def execute_micro_trade(config: dict, client, symbol: str) -> bool:
+    """Esegue una micro-operazione di acquisto MARKET per MICRO_TRADE_QUANTITY unità.
+
+    In modalità DRY_RUN registra l'azione prevista senza inviare ordini reali.
+
+    :param config: configurazione corrente.
+    :param client: istanza di PionexClient.
+    :param symbol: coppia di trading, es. 'BTC_USDT'.
+    :return: True se l'operazione è riuscita (o simulata), False in caso di errore.
+    """
+    if config["dry_run"]:
+        logger.info(
+            "DRY_RUN: micro-trade MARKET BUY simulato per %s — quantità %.4f",
+            symbol,
+            MICRO_TRADE_QUANTITY,
+        )
+        return True
+
+    result = client.create_order(symbol, "BUY", "MARKET", quantity=MICRO_TRADE_QUANTITY)
+    # 'quantity' specifica le unità dell'asset base (es. 0.01 BTC).
+    # Per ordini in valuta di quotazione (USDT) si usa invece 'amount'.
+    if result is not None:
+        logger.info("Micro-trade MARKET BUY eseguito per %s: %s", symbol, result)
+        return True
+    logger.error("Errore nell'esecuzione del micro-trade per %s.", symbol)
+    return False
+
+
+def convert_to_gold(config: dict, client, amount_usdt: float) -> None:
+    """Converte un importo USDT in PAXG tramite ordine MARKET su PAXG_USDT.
+
+    Viene chiamata dopo le micro-operazioni per accumulare oro fisico tokenizzato
+    con i profitti generati. In modalità DRY_RUN registra l'azione senza ordini reali.
+
+    :param config:      configurazione corrente.
+    :param client:      istanza di PionexClient.
+    :param amount_usdt: importo USDT da convertire in PAXG.
+    """
+    if amount_usdt <= 0:
+        return
+
+    if config["dry_run"]:
+        logger.info(
+            "DRY_RUN: conversione in PAXG simulata — %.4f USDT → %s",
+            amount_usdt,
+            PAXG_SYMBOL,
+        )
+        return
+
+    result = client.create_order(PAXG_SYMBOL, "BUY", "MARKET", amount=amount_usdt)
+    if result is not None:
+        logger.info("Profitti convertiti in PAXG (%s): %s", PAXG_SYMBOL, result)
+    else:
+        logger.error("Errore nella conversione dei profitti in PAXG.")
+
+
 def main() -> None:
     config = load_config()
 
@@ -370,15 +477,41 @@ def main() -> None:
             # 3. Accumulo argento (opzionale, se ENABLE_SILVER_ACCUMULATION=1)
             accumulate_silver(config, client)
 
-            # 4. Flying Wheel engine (18 check + micro-trade)
+            # 4. Recupera dati di mercato e aggiorna il contesto per i check
+            tickers = client.get_tickers()
+            ctx["balances"] = balances
+            ctx["tickers"] = tickers
+
+            # 5. Flying Wheel engine (18 check + micro-trade)
             all_passed = engine.run(ctx)
 
             if not all_passed:
                 logger.warning("Flying Wheel non completato: operazione annullata.")
-            elif config["dry_run"]:
-                logger.info("DRY_RUN: operazione simulata completata con successo.")
             else:
-                logger.info("Tutti i check superati — esecuzione completata.")
+                # 6. Analisi opportunità: asset con variazione > PRICE_CHANGE_THRESHOLD%
+                opportunities = get_opportunities(tickers)
+                # Accumulo notional delle operazioni eseguite (costo totale in USDT)
+                # da convertire in PAXG come forma di risparmio in oro
+                gold_allocation_usdt = 0.0
+                for symbol in opportunities:
+                    if execute_micro_trade(config, client, symbol):
+                        # Calcola il costo notional dell'acquisto (quantità × prezzo chiusura)
+                        for t in tickers:
+                            if isinstance(t, dict) and t.get("symbol") == symbol:
+                                try:
+                                    price = float(t.get("close", 0) or 0)
+                                    gold_allocation_usdt += MICRO_TRADE_QUANTITY * price
+                                except (TypeError, ValueError):
+                                    pass
+                                break
+
+                # 7. Converti l'equivalente USDT delle operazioni in PAXG (accumulo oro)
+                convert_to_gold(config, client, gold_allocation_usdt)
+
+                if config["dry_run"]:
+                    logger.info("DRY_RUN: ciclo simulato completato con successo.")
+                else:
+                    logger.info("Ciclo completato — ordini eseguiti.")
 
             consecutive_errors = 0
             logger.info("Prossimo ciclo tra %d secondi.", CYCLE_SLEEP_SECONDS)
