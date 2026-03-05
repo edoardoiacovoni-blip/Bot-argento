@@ -94,26 +94,47 @@ def load_config() -> dict:
 
     try:
         min_usdt_reserve = float(os.environ.get("MIN_USDT_RESERVE", "10.0"))
-    except ValueError:
+    except ValueError as exc:
+        logger.warning(
+            "MIN_USDT_RESERVE non valido (%r), uso default 10.0: %s",
+            os.environ.get("MIN_USDT_RESERVE"),
+            exc,
+        )
         min_usdt_reserve = 10.0
 
     try:
         target_usdt_after_rebalance = float(
             os.environ.get("TARGET_USDT_AFTER_REBALANCE", str(min_usdt_reserve))
         )
-    except ValueError:
+    except ValueError as exc:
+        logger.warning(
+            "TARGET_USDT_AFTER_REBALANCE non valido (%r), uso fallback %s: %s",
+            os.environ.get("TARGET_USDT_AFTER_REBALANCE"),
+            min_usdt_reserve,
+            exc,
+        )
         target_usdt_after_rebalance = min_usdt_reserve
 
     try:
         rebalance_cooldown_sec = int(os.environ.get("REBALANCE_COOLDOWN_SEC", "300"))
-    except ValueError:
+    except ValueError as exc:
+        logger.warning(
+            "REBALANCE_COOLDOWN_SEC non valido (%r), uso default 300: %s",
+            os.environ.get("REBALANCE_COOLDOWN_SEC"),
+            exc,
+        )
         rebalance_cooldown_sec = 300
 
     try:
         min_xag_notional_to_sell = float(
             os.environ.get("MIN_XAG_NOTIONAL_TO_SELL", "2.0")
         )
-    except ValueError:
+    except ValueError as exc:
+        logger.warning(
+            "MIN_XAG_NOTIONAL_TO_SELL non valido (%r), uso default 2.0: %s",
+            os.environ.get("MIN_XAG_NOTIONAL_TO_SELL"),
+            exc,
+        )
         min_xag_notional_to_sell = 2.0
 
     return {
