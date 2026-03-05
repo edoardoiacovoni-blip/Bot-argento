@@ -1,6 +1,6 @@
 # Bot Argento 🤖
 
-Bot di trading automatico su Pionex (PAXG/USDT) basato sul framework **Flying Wheel a 18 punti**.
+Bot di trading automatico su Pionex  basato sul framework **Flying Wheel a 18 punti**.
 
 ## Descrizione
 
