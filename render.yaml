@@ -15,3 +15,13 @@ services:
         sync: false
       - key: SILVER_BUY_AMOUNT_USDT
         value: "5"
+      - key: ENABLE_SILVER_ACCUMULATION
+        value: "0"
+      - key: MIN_USDT_RESERVE
+        value: "10.0"
+      - key: TARGET_USDT_AFTER_REBALANCE
+        value: "10.0"
+      - key: REBALANCE_COOLDOWN_SEC
+        value: "300"
+      - key: MIN_XAG_NOTIONAL_TO_SELL
+        value: "2.0"
