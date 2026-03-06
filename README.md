@@ -30,16 +30,16 @@ Il cuore del bot è il **motore Flying Wheel a 18 controlli**: esegue in sequenz
 - Correlazione con l'indice oro spot e notizie macro rilevanti
 - Dimensione posizione, stop-loss, take-profit e limiti di rischio globale
 
-### Micro-Operazioni (`execute_micro_trade`)
+### Accumulo Argento (`accumulate_silver`)
 
-Per ogni opportunità identificata, il bot esegue una **micro-operazione** di acquisto tramite l'API Pionex:
-- Ordine di tipo `MARKET`
-- Quantità fissa di `0.01` unità
-- Simbolo dell'asset individuato dall'analisi
+Ad ogni ciclo il bot acquista argento tramite l'API Pionex (`main.py`):
+- Ordine di tipo `MARKET BUY` sul simbolo `SILVER_SYMBOL`
+- Importo configurabile via `SILVER_BUY_AMOUNT_USDT` (default: `5` USDT)
+- In modalità `DRY_RUN` l'ordine viene solo simulato e registrato nel log
 
-### Accumulo in Oro (`convert_to_gold`)
+### Conversione in Oro (PAXG)
 
-Ogni profitto generato viene automaticamente convertito in **PAXG** (PAX Gold, token ancorato al prezzo dell'oro fisico) tramite un ordine `MARKET` su `PAXGUSD`.
+La conversione automatica dei profitti in **PAXG** (PAX Gold, token ancorato al prezzo dell'oro fisico) è pianificata come evoluzione futura del bot.
 
 ### Gestione degli Errori
 
@@ -54,6 +54,7 @@ Il bot è progettato per essere **resiliente**:
 Bot-argento/
 ├── main.py                        # Entry point principale
 ├── src/
+│   ├── pionex_client.py           # Client REST autenticato per Pionex
 │   └── flying_wheel/
 │       ├── engine.py              # Motore Flying Wheel (18 controlli)
 │       └── checks.py              # Definizioni dei 18 check
